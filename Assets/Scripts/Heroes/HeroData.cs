@@ -19,8 +19,20 @@ public class HeroData : ScriptableObject
     public HeroClassType heroClass = HeroClassType.Knight;
 
     [Range(1, 5)]
-    [Tooltip("Classificação em Estrelas (1★ a 5★ - Estilo Pick Me Up!)")]
+    [Tooltip("Classificação em Estrelas (1★ a 5★ - Define o nível máximo do herói)")]
     public int stars = 1;
+
+    [Tooltip("Herói de Estrela Dourada (Heróis especiais/únicos com atributos superiores e mais skills - Estilo Han Yslat/Loki)")]
+    public bool isGoldStar = false;
+
+    /// <summary>
+    /// Calcula o nível máximo baseado nas estrelas:
+    /// 1★ = Nível 20 | 2★ = Nível 40 | 3★ = Nível 60 | 4★ = Nível 80 | 5★ = Nível 100
+    /// </summary>
+    public static int GetMaxLevelForStars(int starRank)
+    {
+        return Mathf.Clamp(starRank, 1, 5) * 20;
+    }
 
     [Header("Visual")]
     [Tooltip("Retrato / Avatar do personagem para a interface")]

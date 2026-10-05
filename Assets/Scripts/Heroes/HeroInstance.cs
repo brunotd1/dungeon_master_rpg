@@ -8,13 +8,20 @@ using UnityEngine;
 [System.Serializable]
 public class HeroInstance
 {
-    [Header("Dados do Arquétipo")]
-    public HeroData heroData;
+    [Header("Identidade e Estrelas (Pick Me Up!)")]
+    public string heroName;
+    public HeroClassType heroClass;
+    [Range(1, 5)]
+    public int currentStars = 1;
+    public bool isGoldStar = false;
 
     [Header("Progressão de Nível")]
     public int level = 1;
     public int currentXP = 0;
     public int xpToNextLevel = 100;
+
+    public int MaxLevel => HeroData.GetMaxLevelForStars(currentStars);
+    public bool IsAtMaxLevel => level >= MaxLevel;
 
     [Header("Recursos Vitais em Batalha")]
     public int currentHP;
@@ -36,6 +43,11 @@ public class HeroInstance
     public HeroInstance(HeroData data, int startingLevel = 1)
     {
         heroData = data;
+        heroName = data.heroName;
+        heroClass = data.heroClass;
+        currentStars = data.stars;
+        isGoldStar = data.isGoldStar;
+
         level = startingLevel;
         currentXP = 0;
         CalculateXPRequirement();
@@ -214,12 +226,24 @@ public class HeroInstance
 
     public void GainXP(int amount)
     {
-        currentXP += amount;
-        Debug.Log($"{heroData.heroName} ganhou {amount} XP! ({currentXP}/{xpToNextLevel})");
+        if (IsAtMaxLevel)
+        {
+            Debug.Log($"⚠️ {heroName} atingiu o limite de nível {MaxLevel} ({currentStars}★)! Promova a estrela do herói para continuar evoluindo!");
+            return;
+        }
 
-        while (currentXP >= xpToNextLevel)
+        currentXP += amount;
+        Debug.Log($"{heroName} ganhou {amount} XP! ({currentXP}/{xpToNextLevel})");
+
+        while (currentXP >= xpToNextLevel && !IsAtMaxLevel)
         {
             LevelUp();
+        }
+
+        if (IsAtMaxLevel)
+        {
+            currentXP = 0;
+            Debug.Log($"🛑 LIMITE ALCANÇADO: {heroName} atingiu o Nível Máximo {MaxLevel} para {currentStars} Estrelas!");
         }
     }
 
@@ -233,7 +257,31 @@ public class HeroInstance
         currentHP = GetMaxHP();
         currentMP = GetMaxMP();
 
-        Debug.Log($"⭐ LEVEL UP! {heroData.heroName} agora é Nível {level}! Atributos aumentados!");
+        Debug.Log($"⭐ LEVEL UP! {heroName} agora é Nível {level}! Atributos aumentados!");
+    }
+
+    /// <summary>
+    /// Promove o herói para o próximo nível de estrela (Pick Me Up!).
+    /// Aumenta o limite máximo de nível em +20 e concede um bônus permanente de poder!
+    /// </summary>
+    public bool PromoteStar(out string message)
+    {
+        if (currentStars >= 5)
+        {
+            message = $"{heroName} já atingiu o grau máximo de 5 Estrelas!";
+            return false;
+        }
+
+        if (!IsAtMaxLevel)
+        {
+            message = $"{heroName} precisa atingir o nível máximo atual ({MaxLevel}) antes de ascender para {currentStars + 1}★!";
+            return false;
+        }
+
+        currentStars++;
+        message = $"✨ ASCENSÃO DE ESTRELA! {heroName} agora é um herói de {currentStars}★! Limite de nível expandido para Nv. {MaxLevel}!";
+        Debug.Log(message);
+        return true;
     }
 
     private void CalculateXPRequirement()

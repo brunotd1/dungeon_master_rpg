@@ -10,8 +10,12 @@ public class PartyManager : MonoBehaviour
 {
     public static PartyManager Instance { get; private set; }
 
-    [Header("Modelos dos 4 Heróis Iniciais")]
-    [Tooltip("Arraste aqui os 4 HeroData: Cavaleiro, Cavaleiro Pesado, Mago e Ladino")]
+    [Header("Configuração de Convocação")]
+    [Tooltip("Se ativado, convoca 4 aventureiros aleatórios proceduralmente no início (estilo Pick Me Up!)")]
+    public bool generateRandomPartyOnStart = true;
+
+    [Header("Modelos dos Heróis Pré-definidos (Opcional)")]
+    [Tooltip("Se quiser definir heróis fixos em vez de aleatórios, coloque os HeroData aqui")]
     public HeroData[] initialHeroArchetypes = new HeroData[4];
 
     [Header("Heróis Ativos no Grupo (Instâncias Vivas)")]
@@ -37,24 +41,35 @@ public class PartyManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Constrói os 4 heróis ativos a partir dos HeroData fornecidos.
+    /// Constrói os 4 heróis ativos (seja por geração aleatória ou por arquétipos pré-definidos).
     /// </summary>
+    [ContextMenu("Convocar 4 Aventureiros Aleatórios")]
     public void InitializeParty()
     {
         activeParty.Clear();
 
-        for (int i = 0; i < initialHeroArchetypes.Length; i++)
+        if (generateRandomPartyOnStart)
         {
-            if (initialHeroArchetypes[i] != null)
+            // Convoca 4 aventureiros sorteados com atributos aleatórios
+            for (int i = 0; i < 4; i++)
             {
-                HeroInstance newHero = new HeroInstance(initialHeroArchetypes[i], startingLevel: 1);
-                activeParty.Add(newHero);
-
-                Debug.Log($"🛡️ Herói Convocado: [{newHero.heroData.heroName}] Classe: {newHero.heroData.heroClass} | HP: {newHero.GetMaxHP()} | ATK: {newHero.GetPhysicalAttack()} | DEF: {newHero.GetPhysicalDefense()} | VEL: {newHero.GetSpeed()}");
+                HeroInstance summonedHero = HeroGenerator.GenerateRandomHero(startingStars: 1, goldStarChance: 0.10f);
+                activeParty.Add(summonedHero);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < initialHeroArchetypes.Length; i++)
+            {
+                if (initialHeroArchetypes[i] != null)
+                {
+                    HeroInstance newHero = new HeroInstance(initialHeroArchetypes[i], startingLevel: 1);
+                    activeParty.Add(newHero);
+                }
             }
         }
 
-        Debug.Log($"⚔️ Grupo da Guilda formado com {activeParty.Count} heróis prontos para explorar o Andar 1!");
+        Debug.Log($"⚔️ [GUILDA PRONTA] Grupo de 4 aventureiros convocado para invadir a masmorra!");
     }
 
     /// <summary>
