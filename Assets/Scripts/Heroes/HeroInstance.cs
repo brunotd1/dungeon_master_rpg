@@ -8,6 +8,9 @@ using UnityEngine;
 [System.Serializable]
 public class HeroInstance
 {
+    [Header("Arquétipo do Herói")]
+    public HeroData heroData;
+
     [Header("Identidade e Estrelas (Pick Me Up!)")]
     public string heroName;
     public HeroClassType heroClass;
