@@ -37,9 +37,9 @@ public class BattleManager : MonoBehaviour
     public EnemyData[] commonFloorEnemies;
     public EnemyData floorBossEnemy;
 
-    [Header("Turno Atual")]
-    public int currentHeroIndex = 0;
-    public HeroInstance CurrentHero => (currentHeroIndex >= 0 && currentHeroIndex < heroesInBattle.Count) ? heroesInBattle[currentHeroIndex] : null;
+    [Header("Turno e Seleção")]
+    public HeroInstance selectedHero = null;
+    public HeroInstance CurrentHero => selectedHero;
 
     // Registra quais heróis estão em postura defensiva nesta rodada
     private HashSet<HeroInstance> defendingHeroes = new HashSet<HeroInstance>();
@@ -89,7 +89,10 @@ public class BattleManager : MonoBehaviour
         foreach (var hero in PartyManager.Instance.activeParty)
         {
             if (hero.IsAlive)
+            {
+                hero.hasActedThisRound = false;
                 heroesInBattle.Add(hero);
+            }
         }
 
         if (heroesInBattle.Count == 0)
@@ -108,7 +111,7 @@ public class BattleManager : MonoBehaviour
 
         defendingHeroes.Clear();
         currentTurnRound = 1;
-        currentHeroIndex = 0;
+        selectedHero = null;
 
         Debug.Log($"⚔️ [BATALHA INICIADA] {heroesInBattle.Count} Heróis vs {enemiesInBattle.Count} Monstros!");
 
@@ -118,42 +121,103 @@ public class BattleManager : MonoBehaviour
             BattleHUD.Instance.RefreshBattleArena(heroesInBattle, enemiesInBattle);
         }
 
-        StartHeroTurn();
+        StartPlayerPhase();
     }
 
-    private void StartHeroTurn()
+    /// <summary>
+    /// Inicia a Fase do Jogador na rodada. O jogador escolhe seus heróis livremente na ordem que desejar.
+    /// </summary>
+    public void StartPlayerPhase()
     {
-        // Pula heróis caídos
-        while (currentHeroIndex < heroesInBattle.Count && !heroesInBattle[currentHeroIndex].IsAlive)
-        {
-            currentHeroIndex++;
-        }
-
-        // Se todos os heróis agiram nesta rodada, passa para os monstros
-        if (currentHeroIndex >= heroesInBattle.Count)
-        {
-            StartCoroutine(ExecuteEnemyTurns());
-            return;
-        }
-
         currentState = BattleState.HeroTurn;
-        HeroInstance actingHero = CurrentHero;
-        Debug.Log($"👉 [SUA VEZ] É a vez de {actingHero.heroName} ({actingHero.heroClass})! Escolha sua ação: [Atacar], [Defender] ou [Habilidade].");
+
+        foreach (var h in heroesInBattle)
+        {
+            h.hasActedThisRound = false;
+        }
+        defendingHeroes.Clear();
+
+        Debug.Log($"👑 [FASE DO JOGADOR - RODADA {currentTurnRound}] Escolha qualquer herói pronto para agir!");
+
+        // Auto-seleciona o primeiro herói vivo disponível
+        AutoSelectNextReadyHero();
+    }
+
+    /// <summary>
+    /// Seleciona o herói indicado pelo jogador (ao clicar no personagem no campo ou na barra inferior).
+    /// </summary>
+    public void SelectHero(HeroInstance hero)
+    {
+        if (currentState != BattleState.HeroTurn) return;
+        if (hero == null || !hero.IsAlive) return;
+
+        selectedHero = hero;
+        Debug.Log($"👉 Herói selecionado: {hero.heroName} ({(hero.hasActedThisRound ? "Já agiu nesta rodada" : "Pronto para agir")})");
 
         if (BattleHUD.Instance != null)
         {
-            BattleHUD.Instance.SetHeroTurnUI(actingHero);
+            BattleHUD.Instance.SetHeroTurnUI(selectedHero);
+        }
+    }
+
+    /// <summary>
+    /// Auto-seleciona o próximo herói vivo que ainda não agiu nesta rodada.
+    /// </summary>
+    public void AutoSelectNextReadyHero()
+    {
+        HeroInstance nextReady = heroesInBattle.Find(h => h.IsAlive && !h.hasActedThisRound);
+        selectedHero = nextReady;
+
+        if (selectedHero != null)
+        {
+            if (BattleHUD.Instance != null)
+            {
+                BattleHUD.Instance.SetHeroTurnUI(selectedHero);
+            }
+        }
+        else
+        {
+            // Se nenhum herói pode agir, transiciona para os inimigos
+            StartCoroutine(ExecuteEnemyTurns());
+        }
+    }
+
+    /// <summary>
+    /// Verifica se todos os heróis vivos já realizaram sua ação nesta rodada.
+    /// </summary>
+    private void CheckPhaseCompletion()
+    {
+        if (CheckVictoryCondition())
+        {
+            OnVictory();
+            return;
+        }
+
+        bool anyHeroReady = heroesInBattle.Exists(h => h.IsAlive && !h.hasActedThisRound);
+        if (!anyHeroReady)
+        {
+            Debug.Log("⏳ Todos os heróis agiram nesta rodada! Iniciando o turno dos monstros...");
+            StartCoroutine(ExecuteEnemyTurns());
+        }
+        else
+        {
+            AutoSelectNextReadyHero();
         }
     }
 
     #region Ações do Jogador (Comandos Estilo Final Fantasy)
 
     /// <summary>
-    /// Executa um ataque físico básico contra o monstro selecionado.
+    /// Executa um ataque físico básico contra o monstro selecionado com o herói ativo.
     /// </summary>
     public void PlayerAttack(int targetEnemyIndex)
     {
-        if (currentState != BattleState.HeroTurn || CurrentHero == null) return;
+        if (currentState != BattleState.HeroTurn || selectedHero == null) return;
+        if (selectedHero.hasActedThisRound)
+        {
+            Debug.LogWarning($"{selectedHero.heroName} já agiu nesta rodada! Selecione outro herói.");
+            return;
+        }
 
         if (targetEnemyIndex < 0 || targetEnemyIndex >= enemiesInBattle.Count || !enemiesInBattle[targetEnemyIndex].IsAlive)
         {
@@ -161,7 +225,7 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        HeroInstance attacker = CurrentHero;
+        HeroInstance attacker = selectedHero;
         EnemyInstance target = enemiesInBattle[targetEnemyIndex];
 
         // Cálculo de dano com chance de acerto crítico (Destreza)
@@ -176,6 +240,8 @@ public class BattleManager : MonoBehaviour
         Debug.Log($"🗡️ {attacker.heroName} desferiu um ataque contra {target.enemyName}!");
         target.TakeDamage(attackPower);
 
+        attacker.hasActedThisRound = true;
+
         if (BattleHUD.Instance != null)
         {
             BattleHUD.Instance.UpdateAllStats();
@@ -189,16 +255,41 @@ public class BattleManager : MonoBehaviour
             Debug.Log($"💀 {target.enemyName} foi abatido!");
         }
 
-        // Verifica vitória
-        if (CheckVictoryCondition())
+        CheckPhaseCompletion();
+    }
+
+    /// <summary>
+    /// O herói selecionado consome uma Poção de Cura (cura 35% Max HP + 10).
+    /// </summary>
+    public void PlayerUsePotion()
+    {
+        if (currentState != BattleState.HeroTurn || selectedHero == null) return;
+        if (selectedHero.hasActedThisRound)
         {
-            OnVictory();
+            Debug.LogWarning($"{selectedHero.heroName} já agiu nesta rodada!");
             return;
         }
 
-        // Passa para o próximo herói da rodada
-        currentHeroIndex++;
-        StartHeroTurn();
+        if (selectedHero.healingPotions <= 0)
+        {
+            Debug.LogWarning($"{selectedHero.heroName} não possui mais poções de cura!");
+            if (BattleHUD.Instance != null)
+                BattleHUD.Instance.combatLogText.text = $"⚠️ {selectedHero.heroName} não tem mais poções de cura!";
+            return;
+        }
+
+        if (selectedHero.UseHealingPotion(out int amountHealed))
+        {
+            selectedHero.hasActedThisRound = true;
+
+            if (BattleHUD.Instance != null)
+            {
+                BattleHUD.Instance.UpdateAllStats();
+                BattleHUD.Instance.combatLogText.text = $"🧪 <b>{selectedHero.heroName}</b> usou uma Poção de Cura (+{amountHealed} HP)! Restam: {selectedHero.healingPotions}/6";
+            }
+
+            CheckPhaseCompletion();
+        }
     }
 
     /// <summary>
@@ -206,15 +297,38 @@ public class BattleManager : MonoBehaviour
     /// </summary>
     public void PlayerDefend()
     {
-        if (currentState != BattleState.HeroTurn || CurrentHero == null) return;
+        if (currentState != BattleState.HeroTurn || selectedHero == null) return;
+        if (selectedHero.hasActedThisRound)
+        {
+            Debug.LogWarning($"{selectedHero.heroName} já agiu nesta rodada!");
+            return;
+        }
 
-        HeroInstance defender = CurrentHero;
+        HeroInstance defender = selectedHero;
         defendingHeroes.Add(defender);
+        defender.hasActedThisRound = true;
         Debug.Log($"🛡️ {defender.heroName} assumiu postura defensiva! Dano sofrido reduzido pela metade.");
 
-        currentHeroIndex++;
-        StartHeroTurn();
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.UpdateAllStats();
+            BattleHUD.Instance.combatLogText.text = $"🛡️ <b>{defender.heroName}</b> assumiu postura defensiva! (Dano reduzido em 50%)";
+        }
+
+        CheckPhaseCompletion();
     }
+
+    /// <summary>
+    /// Permite ao jogador encerrar a fase do jogador manualmente, mesmo se restarem heróis sem agir.
+    /// </summary>
+    public void EndPlayerPhaseManually()
+    {
+        if (currentState != BattleState.HeroTurn) return;
+        Debug.Log("⏩ O jogador optou por encerrar a fase do grupo!");
+        StartCoroutine(ExecuteEnemyTurns());
+    }
+
+    public bool IsHeroDefending(HeroInstance hero) => defendingHeroes.Contains(hero);
 
     #endregion
 
@@ -223,7 +337,13 @@ public class BattleManager : MonoBehaviour
     private IEnumerator ExecuteEnemyTurns()
     {
         currentState = BattleState.EnemyTurn;
+        selectedHero = null;
         Debug.Log($"👹 [TURNO DOS MONSTROS] As criaturas da masmorra se preparam para atacar!");
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.SetEnemyTurnUI();
+        }
 
         yield return new WaitForSeconds(0.6f);
 
@@ -242,7 +362,7 @@ public class BattleManager : MonoBehaviour
             if (defendingHeroes.Contains(targetHero))
             {
                 rawDamage = Mathf.RoundToInt(rawDamage * 0.5f);
-                Debug.Log($"🛡️ {targetHero.heroName} bloqueou parte do golpe com seu escudo!");
+                Debug.Log($"🛡️ {targetHero.heroName} bloqueou parte do golpe com sua postura defensiva!");
             }
 
             Debug.Log($"💢 {enemy.enemyName} atacou {targetHero.heroName}!");
@@ -251,7 +371,9 @@ public class BattleManager : MonoBehaviour
             if (BattleHUD.Instance != null)
             {
                 BattleHUD.Instance.UpdateAllStats();
-                BattleHUD.Instance.combatLogText.text = $"💢 {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano!";
+                BattleHUD.Instance.combatLogText.text = defendingHeroes.Contains(targetHero)
+                    ? $"🛡️ {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano! (Bloqueio -50%)"
+                    : $"💢 {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano!";
             }
 
             if (!targetHero.IsAlive)
@@ -259,7 +381,7 @@ public class BattleManager : MonoBehaviour
                 Debug.Log($"⚠️ PERIGO: {targetHero.heroName} caiu em combate!");
             }
 
-            yield return new WaitForSeconds(0.8f);
+            yield return new WaitForSeconds(0.7f);
 
             // Verifica derrota
             if (CheckDefeatCondition())
@@ -271,18 +393,15 @@ public class BattleManager : MonoBehaviour
 
         // Prepara nova rodada
         currentTurnRound++;
-        currentHeroIndex = 0;
-        defendingHeroes.Clear();
-
         Debug.Log($"🔄 [NOVA RODADA] Rodada {currentTurnRound} se iniciando!");
-        StartHeroTurn();
+        StartPlayerPhase();
     }
 
     #endregion
 
     #region Condições de Vitória e Derrota
 
-    private bool CheckVictoryCondition()
+    public bool CheckVictoryCondition()
     {
         foreach (var e in enemiesInBattle)
         {
@@ -291,7 +410,7 @@ public class BattleManager : MonoBehaviour
         return true;
     }
 
-    private bool CheckDefeatCondition()
+    public bool CheckDefeatCondition()
     {
         foreach (var h in heroesInBattle)
         {
@@ -333,7 +452,7 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // Notifica o DungeonManager para continuar a exploração
+        // Notifica o DungeonManager que a sala foi limpa e gera as portas para o jogador escolher
         if (DungeonManager.Instance != null)
         {
             bool wasBossFight = enemiesInBattle.Exists(e => e.data.isBoss);
@@ -357,20 +476,28 @@ public class BattleManager : MonoBehaviour
     {
         currentState = BattleState.Defeat;
         Debug.LogError("☠️ DERROTA ESMAGADORA! Todo o grupo de aventureiros foi aniquilado na dungeon.");
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.ShowDefeat();
+        }
     }
 
     #endregion
 
     #region Testes Rápidos no Inspector
 
-    [ContextMenu("Iniciar Batalha de Teste")]
+    [ContextMenu("Iniciar Batalha de Teste (2 a 6 Inimigos)")]
     public void TestStartBattle()
     {
         if (commonFloorEnemies != null && commonFloorEnemies.Length > 0)
         {
             List<EnemyData> encounter = new List<EnemyData>();
-            encounter.Add(commonFloorEnemies[Random.Range(0, commonFloorEnemies.Length)]);
-            encounter.Add(commonFloorEnemies[Random.Range(0, commonFloorEnemies.Length)]);
+            int enemyCount = Random.Range(2, 7); // Mínimo 2, máximo 6 monstros!
+            for (int i = 0; i < enemyCount; i++)
+            {
+                encounter.Add(commonFloorEnemies[Random.Range(0, commonFloorEnemies.Length)]);
+            }
             StartBattle(encounter);
         }
     }
@@ -380,6 +507,9 @@ public class BattleManager : MonoBehaviour
 
     [ContextMenu("Atacar Monstro 1")]
     public void TestAttackMonster1() => PlayerAttack(1);
+
+    [ContextMenu("Usar Poção de Cura")]
+    public void TestUsePotion() => PlayerUsePotion();
 
     [ContextMenu("Defender")]
     public void TestDefend() => PlayerDefend();

@@ -107,9 +107,17 @@ public class DungeonManager : MonoBehaviour
 
     /// <summary>
     /// O jogador escolhe uma das portas (0, 1 ou 2) para entrar.
+    /// Só é possível escolher portas com a sala atual completamente limpa.
     /// </summary>
     public void ChooseDoor(int doorIndex)
     {
+        // Se houver batalha ativa, bloqueia a passagem de portas!
+        if (BattleManager.Instance != null && (BattleManager.Instance.currentState == BattleState.HeroTurn || BattleManager.Instance.currentState == BattleState.EnemyTurn))
+        {
+            Debug.LogWarning("⚠️ Você precisa derrotar todos os monstros na câmara presente antes de escolher a próxima porta!");
+            return;
+        }
+
         if (doorIndex < 0 || doorIndex >= currentDoorChoices.Count)
         {
             Debug.LogWarning("Porta inválida selecionada!");
@@ -117,6 +125,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         DungeonRoom selectedRoom = currentDoorChoices[doorIndex];
+        currentDoorChoices.Clear(); // Limpa as portas até a sala ser superada
         Debug.Log($"🚶 A Guilda atravessou a porta: [{selectedRoom.roomTitle}]");
 
         ProcessRoom(selectedRoom);
@@ -151,7 +160,8 @@ public class DungeonManager : MonoBehaviour
                 if (BattleManager.Instance != null && BattleManager.Instance.commonFloorEnemies != null && BattleManager.Instance.commonFloorEnemies.Length > 0)
                 {
                     List<EnemyData> encounter = new List<EnemyData>();
-                    int enemyCount = Random.Range(1, 3);
+                    // Quantidade aleatória entre 2 e 6 inimigos (regra: mínimo 2, máximo 6)
+                    int enemyCount = Random.Range(2, 7);
                     for (int i = 0; i < enemyCount; i++)
                     {
                         encounter.Add(BattleManager.Instance.commonFloorEnemies[Random.Range(0, BattleManager.Instance.commonFloorEnemies.Length)]);

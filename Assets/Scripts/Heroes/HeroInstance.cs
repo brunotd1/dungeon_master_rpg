@@ -30,6 +30,19 @@ public class HeroInstance
     public int currentHP;
     public int currentMP;
 
+    [Header("Consumíveis (Poções de Cura)")]
+    public int healingPotions = 6;
+
+    [Header("Distribuição Livre de Atributos (Level Up)")]
+    public int unallocatedAttributePoints = 0;
+    public int allocatedStrength = 0;
+    public int allocatedDexterity = 0;
+    public int allocatedIntelligence = 0;
+    public int allocatedVitality = 0;
+
+    [Header("Estado do Turno na Batalha")]
+    public bool hasActedThisRound = false;
+
     [Header("Os 6 Slots de Equipamento")]
     public ItemData equippedWeapon;
     public ItemData equippedHelmet;
@@ -53,6 +66,14 @@ public class HeroInstance
 
         level = startingLevel;
         currentXP = 0;
+        healingPotions = 6;
+        unallocatedAttributePoints = 0;
+        allocatedStrength = 0;
+        allocatedDexterity = 0;
+        allocatedIntelligence = 0;
+        allocatedVitality = 0;
+        hasActedThisRound = false;
+
         CalculateXPRequirement();
 
         currentHP = GetMaxHP();
@@ -60,16 +81,16 @@ public class HeroInstance
     }
 
     /// <summary>
-    /// Calcula os atributos brutos atuais com base no nível do herói.
+    /// Calcula os atributos brutos atuais com base no nível do herói somados aos pontos livres distribuídos.
     /// </summary>
     public HeroAttributes GetCurrentAttributes()
     {
         int levelsGained = level - 1;
         return new HeroAttributes(
-            heroData.baseAttributes.strength + (heroData.growthPerLevel.strength * levelsGained),
-            heroData.baseAttributes.dexterity + (heroData.growthPerLevel.dexterity * levelsGained),
-            heroData.baseAttributes.intelligence + (heroData.growthPerLevel.intelligence * levelsGained),
-            heroData.baseAttributes.vitality + (heroData.growthPerLevel.vitality * levelsGained)
+            heroData.baseAttributes.strength + (heroData.growthPerLevel.strength * levelsGained) + allocatedStrength,
+            heroData.baseAttributes.dexterity + (heroData.growthPerLevel.dexterity * levelsGained) + allocatedDexterity,
+            heroData.baseAttributes.intelligence + (heroData.growthPerLevel.intelligence * levelsGained) + allocatedIntelligence,
+            heroData.baseAttributes.vitality + (heroData.growthPerLevel.vitality * levelsGained) + allocatedVitality
         );
     }
 
@@ -227,6 +248,59 @@ public class HeroInstance
         currentHP = Mathf.Min(GetMaxHP(), currentHP + amount);
     }
 
+    /// <summary>
+    /// Usa uma Poção de Cura se disponível.
+    /// Cura balanceada: 35% da Vida Máxima + 10 pontos.
+    /// </summary>
+    public bool UseHealingPotion(out int amountHealed)
+    {
+        amountHealed = 0;
+        if (healingPotions <= 0)
+        {
+            return false;
+        }
+
+        amountHealed = Mathf.RoundToInt(GetMaxHP() * 0.35f) + 10;
+        healingPotions--;
+        Heal(amountHealed);
+        Debug.Log($"🧪 {heroName} consumiu uma Poção de Cura (+{amountHealed} HP)! Restam: {healingPotions}/6");
+        return true;
+    }
+
+    /// <summary>
+    /// Distribui 1 ponto livre de atributo ganho por subir de nível.
+    /// </summary>
+    public bool AllocateAttributePoint(string attributeName)
+    {
+        if (unallocatedAttributePoints <= 0) return false;
+
+        switch (attributeName.ToUpper())
+        {
+            case "STR":
+            case "FORÇA":
+                allocatedStrength++;
+                break;
+            case "DEX":
+            case "DESTREZA":
+                allocatedDexterity++;
+                break;
+            case "INT":
+            case "INTELIGÊNCIA":
+                allocatedIntelligence++;
+                break;
+            case "VIT":
+            case "VITALIDADE":
+                allocatedVitality++;
+                currentHP = Mathf.Min(GetMaxHP(), currentHP + 15);
+                break;
+            default:
+                return false;
+        }
+
+        unallocatedAttributePoints--;
+        return true;
+    }
+
     public void GainXP(int amount)
     {
         if (IsAtMaxLevel)
@@ -256,11 +330,14 @@ public class HeroInstance
         level++;
         CalculateXPRequirement();
 
+        // Concede 3 pontos livres de atributo para o jogador administrar!
+        unallocatedAttributePoints += 3;
+
         // Cura completa ao subir de nível (recompensa clássica de RPG)
         currentHP = GetMaxHP();
         currentMP = GetMaxMP();
 
-        Debug.Log($"⭐ LEVEL UP! {heroName} agora é Nível {level}! Atributos aumentados!");
+        Debug.Log($"⭐ LEVEL UP! {heroName} agora é Nível {level}! +3 Pontos de Atributo para distribuir!");
     }
 
     /// <summary>
