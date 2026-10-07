@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using TMPro;
 
 /// <summary>
@@ -49,11 +51,28 @@ public class BattleHUD : MonoBehaviour
             return;
         }
         Instance = this;
+        EnsureEventSystem();
     }
 
     void Start()
     {
+        EnsureEventSystem();
         BuildHUDStructureIfNotExisting();
+    }
+
+    /// <summary>
+    /// Garante que exista um EventSystem com suporte ao novo Input System na cena, permitindo cliques do mouse na UI.
+    /// </summary>
+    public void EnsureEventSystem()
+    {
+        if (FindFirstObjectByType<EventSystem>() == null)
+        {
+            GameObject esObj = new GameObject("EventSystem");
+            esObj.AddComponent<EventSystem>();
+            var module = esObj.AddComponent<InputSystemUIInputModule>();
+            module.AssignDefaultActions();
+            Debug.Log("[BattleHUD] EventSystem e InputSystemUIInputModule criados para capturar cliques do mouse!");
+        }
     }
 
     /// <summary>
@@ -61,6 +80,8 @@ public class BattleHUD : MonoBehaviour
     /// </summary>
     public void BuildHUDStructureIfNotExisting()
     {
+        EnsureEventSystem();
+
         if (battleCanvas == null)
         {
             battleCanvas = FindFirstObjectByType<Canvas>();
@@ -69,11 +90,20 @@ public class BattleHUD : MonoBehaviour
                 GameObject canvasObj = new GameObject("BattleCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
                 battleCanvas = canvasObj.GetComponent<Canvas>();
                 battleCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                CanvasScaler cs = canvasObj.GetComponent<CanvasScaler>();
-                cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                cs.referenceResolution = new Vector2(1920, 1080);
             }
         }
+
+        // Garante componentes essenciais de renderização e raycasting no Canvas
+        if (battleCanvas.GetComponent<GraphicRaycaster>() == null)
+        {
+            battleCanvas.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
+        CanvasScaler cs = battleCanvas.GetComponent<CanvasScaler>();
+        if (cs == null) cs = battleCanvas.gameObject.AddComponent<CanvasScaler>();
+        cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        cs.referenceResolution = new Vector2(1920, 1080);
+        cs.matchWidthOrHeight = 0.5f;
 
         if (battleRootPanel == null)
         {
@@ -175,7 +205,19 @@ public class BattleHUD : MonoBehaviour
         rt.anchorMax = anchorMax;
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
-        btnObj.GetComponent<Image>().color = bgColor;
+
+        Image img = btnObj.GetComponent<Image>();
+        img.color = bgColor;
+
+        Button btn = btnObj.GetComponent<Button>();
+        btn.targetGraphic = img;
+
+        ColorBlock cb = btn.colors;
+        cb.normalColor = bgColor;
+        cb.highlightedColor = bgColor * 1.3f;
+        cb.pressedColor = bgColor * 0.7f;
+        cb.selectedColor = bgColor * 1.2f;
+        btn.colors = cb;
 
         GameObject txtObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         txtObj.transform.SetParent(btnObj.transform, false);
@@ -190,8 +232,9 @@ public class BattleHUD : MonoBehaviour
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
+        tmp.raycastTarget = false; // Não bloqueia o clique no botão!
 
-        return btnObj.GetComponent<Button>();
+        return btn;
     }
 
     private void CreateVictoryPanel()
@@ -278,9 +321,9 @@ public class BattleHUD : MonoBehaviour
         GameObject cardObj = new GameObject($"HeroCard_{hero.heroName}", typeof(RectTransform), typeof(Image));
         cardObj.transform.SetParent(heroesContainer, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(0, 95);
+        rt.sizeDelta = new Vector2(0, 110);
         Image bg = cardObj.GetComponent<Image>();
-        bg.color = new Color(0.18f, 0.22f, 0.30f, 0.90f);
+        bg.color = new Color(0.14f, 0.17f, 0.24f, 0.95f);
 
         // Nome e Classe
         GameObject nameObj = new GameObject("NameText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -291,11 +334,12 @@ public class BattleHUD : MonoBehaviour
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
         TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
-        string starBadge = hero.isGoldStar ? $"[Ouro {hero.currentStars}*]" : $"[{hero.currentStars}*]";
+        string starBadge = hero.isGoldStar ? $"<color=#FFD700>[Ouro {hero.currentStars}*]</color>" : $"<color=#E0E0E0>[{hero.currentStars}*]</color>";
         nameTmp.text = $"{starBadge} {hero.heroName} <size=14><color=#90CAF9>[{hero.heroClass}]</color></size>";
-        nameTmp.fontSize = 17;
+        nameTmp.fontSize = 18;
         nameTmp.fontStyle = FontStyles.Bold;
         nameTmp.color = Color.white;
+        nameTmp.raycastTarget = false;
 
         // HP Text
         GameObject hpObj = new GameObject("HPText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -306,8 +350,9 @@ public class BattleHUD : MonoBehaviour
         hpRT.offsetMin = Vector2.zero;
         hpRT.offsetMax = Vector2.zero;
         TextMeshProUGUI hpTmp = hpObj.GetComponent<TextMeshProUGUI>();
-        hpTmp.fontSize = 15;
-        hpTmp.color = new Color(0.4f, 0.9f, 0.4f);
+        hpTmp.fontSize = 16;
+        hpTmp.color = new Color(0.4f, 0.95f, 0.4f);
+        hpTmp.raycastTarget = false;
 
         // MP Text
         GameObject mpObj = new GameObject("MPText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -318,8 +363,9 @@ public class BattleHUD : MonoBehaviour
         mpRT.offsetMin = Vector2.zero;
         mpRT.offsetMax = Vector2.zero;
         TextMeshProUGUI mpTmp = mpObj.GetComponent<TextMeshProUGUI>();
-        mpTmp.fontSize = 14;
-        mpTmp.color = new Color(0.4f, 0.7f, 1f);
+        mpTmp.fontSize = 15;
+        mpTmp.color = new Color(0.4f, 0.8f, 1f);
+        mpTmp.raycastTarget = false;
 
         return new HeroDisplayUI { hero = hero, cardImage = bg, hpText = hpTmp, mpText = mpTmp };
     }
@@ -329,23 +375,32 @@ public class BattleHUD : MonoBehaviour
         GameObject cardObj = new GameObject($"EnemyCard_{enemy.enemyName}", typeof(RectTransform), typeof(Image), typeof(Button));
         cardObj.transform.SetParent(enemiesContainer, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(0, 85);
+        rt.sizeDelta = new Vector2(0, 105);
         Image bg = cardObj.GetComponent<Image>();
-        bg.color = new Color(0.35f, 0.15f, 0.15f, 0.90f);
+        bg.color = new Color(0.38f, 0.14f, 0.16f, 0.95f);
+
+        Button btn = cardObj.GetComponent<Button>();
+        btn.targetGraphic = bg;
+        ColorBlock cb = btn.colors;
+        cb.normalColor = new Color(0.38f, 0.14f, 0.16f, 0.95f);
+        cb.highlightedColor = new Color(0.65f, 0.20f, 0.25f, 1f);
+        cb.pressedColor = new Color(0.85f, 0.25f, 0.30f, 1f);
+        btn.colors = cb;
 
         // Nome
         GameObject nameObj = new GameObject("NameText", typeof(RectTransform), typeof(TextMeshProUGUI));
         nameObj.transform.SetParent(cardObj.transform, false);
         RectTransform nameRT = nameObj.GetComponent<RectTransform>();
-        nameRT.anchorMin = new Vector2(0.05f, 0.55f);
+        nameRT.anchorMin = new Vector2(0.05f, 0.50f);
         nameRT.anchorMax = new Vector2(0.95f, 0.95f);
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
         TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
-        nameTmp.text = enemy.data.isBoss ? $"[CHEFE] {enemy.enemyName}" : $"[MONSTRO] {enemy.enemyName}";
+        nameTmp.text = enemy.data.isBoss ? $"<color=#FF5555>[CHEFE]</color> {enemy.enemyName}" : $"<color=#FFAAAA>[MONSTRO]</color> {enemy.enemyName}";
         nameTmp.fontSize = 18;
         nameTmp.fontStyle = FontStyles.Bold;
-        nameTmp.color = enemy.data.isBoss ? new Color(1f, 0.3f, 0.3f) : Color.white;
+        nameTmp.color = Color.white;
+        nameTmp.raycastTarget = false;
 
         // HP Text
         GameObject hpObj = new GameObject("HPText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -357,12 +412,12 @@ public class BattleHUD : MonoBehaviour
         hpRT.offsetMax = Vector2.zero;
         TextMeshProUGUI hpTmp = hpObj.GetComponent<TextMeshProUGUI>();
         hpTmp.fontSize = 16;
-        hpTmp.color = new Color(1f, 0.4f, 0.4f);
+        hpTmp.color = new Color(1f, 0.45f, 0.45f);
+        hpTmp.raycastTarget = false;
 
         // Clique para atacar diretamente este monstro
-        Button btn = cardObj.GetComponent<Button>();
         btn.onClick.AddListener(() => {
-            if (isTargetingEnemy || BattleManager.Instance.currentState == BattleState.HeroTurn)
+            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
             {
                 BattleManager.Instance.PlayerAttack(index);
                 isTargetingEnemy = false;
@@ -432,8 +487,36 @@ public class BattleHUD : MonoBehaviour
 
     public void OnClickAttack()
     {
+        int firstAlive = -1;
+        int aliveCount = 0;
+        for (int i = 0; i < enemyDisplays.Count; i++)
+        {
+            if (enemyDisplays[i].enemy != null && enemyDisplays[i].enemy.IsAlive)
+            {
+                if (firstAlive == -1) firstAlive = i;
+                aliveCount++;
+            }
+        }
+
+        // Se houver apenas 1 monstro vivo, ataca direto com um único clique!
+        if (aliveCount == 1 && firstAlive != -1)
+        {
+            BattleManager.Instance.PlayerAttack(firstAlive);
+            isTargetingEnemy = false;
+            return;
+        }
+
+        // Se houver mais de um, ativa mira e destaca visualmente os cartões
         isTargetingEnemy = true;
-        combatLogText.text = ">> <b>Selecione o monstro</b> que você deseja atacar clicando no cartão dele à esquerda!";
+        combatLogText.text = ">> <b>CLIQUE NO MONSTRO</b> (cartão vermelho à esquerda) que deseja golpear!";
+
+        for (int i = 0; i < enemyDisplays.Count; i++)
+        {
+            if (enemyDisplays[i].enemy != null && enemyDisplays[i].enemy.IsAlive)
+            {
+                enemyDisplays[i].cardImage.color = new Color(0.70f, 0.20f, 0.25f, 1f);
+            }
+        }
     }
 
     public void OnClickDefend()
