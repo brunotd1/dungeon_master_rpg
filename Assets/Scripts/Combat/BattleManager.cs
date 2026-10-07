@@ -246,8 +246,8 @@ public class BattleManager : MonoBehaviour
         {
             BattleHUD.Instance.UpdateAllStats();
             BattleHUD.Instance.combatLogText.text = isCrit 
-                ? $"⚡ <b>CRÍTICO!</b> {attacker.heroName} causou {attackPower} de dano a {target.enemyName}!"
-                : $"🗡️ {attacker.heroName} causou {attackPower} de dano a {target.enemyName}!";
+                ? $"[CRÍTICO!] <b>{attacker.heroName}</b> causou {attackPower} de dano a {target.enemyName}!"
+                : $"<b>{attacker.heroName}</b> causou {attackPower} de dano a {target.enemyName}!";
         }
 
         if (!target.IsAlive)
@@ -274,7 +274,7 @@ public class BattleManager : MonoBehaviour
         {
             Debug.LogWarning($"{selectedHero.heroName} não possui mais poções de cura!");
             if (BattleHUD.Instance != null)
-                BattleHUD.Instance.combatLogText.text = $"⚠️ {selectedHero.heroName} não tem mais poções de cura!";
+                BattleHUD.Instance.combatLogText.text = $"[AVISO] {selectedHero.heroName} não tem mais poções de cura!";
             return;
         }
 
@@ -285,7 +285,7 @@ public class BattleManager : MonoBehaviour
             if (BattleHUD.Instance != null)
             {
                 BattleHUD.Instance.UpdateAllStats();
-                BattleHUD.Instance.combatLogText.text = $"🧪 <b>{selectedHero.heroName}</b> usou uma Poção de Cura (+{amountHealed} HP)! Restam: {selectedHero.healingPotions}/6";
+                BattleHUD.Instance.combatLogText.text = $"[POÇÃO] <b>{selectedHero.heroName}</b> recuperou {amountHealed} HP! (Restam: {selectedHero.healingPotions}/6)";
             }
 
             CheckPhaseCompletion();
@@ -312,7 +312,7 @@ public class BattleManager : MonoBehaviour
         if (BattleHUD.Instance != null)
         {
             BattleHUD.Instance.UpdateAllStats();
-            BattleHUD.Instance.combatLogText.text = $"🛡️ <b>{defender.heroName}</b> assumiu postura defensiva! (Dano reduzido em 50%)";
+            BattleHUD.Instance.combatLogText.text = $"[DEFESA] <b>{defender.heroName}</b> assumiu postura defensiva! (-50% dano sofrido)";
         }
 
         CheckPhaseCompletion();
@@ -372,8 +372,8 @@ public class BattleManager : MonoBehaviour
             {
                 BattleHUD.Instance.UpdateAllStats();
                 BattleHUD.Instance.combatLogText.text = defendingHeroes.Contains(targetHero)
-                    ? $"🛡️ {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano! (Bloqueio -50%)"
-                    : $"💢 {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano!";
+                    ? $"[BLOQUEIO] {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano! (-50%)"
+                    : $"{enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano!";
             }
 
             if (!targetHero.IsAlive)

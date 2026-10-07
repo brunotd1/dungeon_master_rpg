@@ -32,23 +32,23 @@ public class DungeonRoom
         switch (type)
         {
             case RoomType.Combat:
-                roomTitle = $"⚔️ Batalha no Andar {floor}";
+                roomTitle = $"Batalha no Andar {floor}";
                 description = "Monstros hostis rondam esta câmara. Prepare-se para a luta!";
                 break;
             case RoomType.Treasure:
-                roomTitle = $"🎁 Câmara do Tesouro";
+                roomTitle = $"Câmara do Tesouro";
                 description = "Um baú reforçado brilha na penumbra. Há espólios valiosos aqui.";
                 break;
             case RoomType.Rest:
-                roomTitle = $"🏕️ Fogueira de Descanso";
+                roomTitle = $"Fogueira de Descanso";
                 description = "Um refúgio seguro para a guilda curar ferimentos e recuperar mana.";
                 break;
             case RoomType.Boss:
-                roomTitle = $"👹 Guardião do Andar {floor}";
+                roomTitle = $"Guardião do Andar {floor}";
                 description = "Uma presença esmagadora emana desta porta. O Chefe do Andar aguarda!";
                 break;
             case RoomType.Stairs:
-                roomTitle = $"🪜 Escadaria para o Andar {floor + 1}";
+                roomTitle = $"Escadaria para o Andar {floor + 1}";
                 description = "As escadas que levam para o andar superior da torre estão livres!";
                 break;
         }

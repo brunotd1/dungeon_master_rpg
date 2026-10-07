@@ -194,17 +194,17 @@ public class BattleHUD : MonoBehaviour
         commandHeaderTitle.text = "COMANDOS";
 
         // Botões de Ação na Caixa de Comandos
-        attackBtn = CreateButton(commandBoxPanel, "AttackBtn", "⚔️ ATACAR", new Vector2(0.04f, 0.38f), new Vector2(0.48f, 0.68f), new Color(0.65f, 0.18f, 0.20f));
+        attackBtn = CreateButton(commandBoxPanel, "AttackBtn", "[ ATACAR ]", new Vector2(0.04f, 0.38f), new Vector2(0.48f, 0.68f), new Color(0.65f, 0.18f, 0.20f));
         attackBtn.onClick.AddListener(OnClickAttack);
 
-        potionBtn = CreateButton(commandBoxPanel, "PotionBtn", "🧪 POÇÃO (6/6)", new Vector2(0.52f, 0.38f), new Vector2(0.96f, 0.68f), new Color(0.18f, 0.58f, 0.32f));
+        potionBtn = CreateButton(commandBoxPanel, "PotionBtn", "POÇÃO (6/6)", new Vector2(0.52f, 0.38f), new Vector2(0.96f, 0.68f), new Color(0.18f, 0.58f, 0.32f));
         potionBtnText = potionBtn.GetComponentInChildren<TextMeshProUGUI>();
         potionBtn.onClick.AddListener(OnClickUsePotion);
 
-        defendBtn = CreateButton(commandBoxPanel, "DefendBtn", "🛡️ DEFENDER", new Vector2(0.04f, 0.05f), new Vector2(0.48f, 0.34f), new Color(0.20f, 0.38f, 0.65f));
+        defendBtn = CreateButton(commandBoxPanel, "DefendBtn", "[ DEFENDER ]", new Vector2(0.04f, 0.05f), new Vector2(0.48f, 0.34f), new Color(0.20f, 0.38f, 0.65f));
         defendBtn.onClick.AddListener(OnClickDefend);
 
-        endTurnBtn = CreateButton(commandBoxPanel, "EndTurnBtn", "⏳ ENCERRAR", new Vector2(0.52f, 0.05f), new Vector2(0.96f, 0.34f), new Color(0.35f, 0.35f, 0.40f));
+        endTurnBtn = CreateButton(commandBoxPanel, "EndTurnBtn", "[ ENCERRAR ]", new Vector2(0.52f, 0.05f), new Vector2(0.96f, 0.34f), new Color(0.35f, 0.35f, 0.40f));
         endTurnBtn.onClick.AddListener(OnClickEndTurn);
 
         // Painel de Modo de Seleção de Alvo (sobreposto na caixa de comandos)
@@ -220,7 +220,7 @@ public class BattleHUD : MonoBehaviour
         targetModePromptText.color = new Color(1f, 0.45f, 0.45f);
         targetModePromptText.text = "CLIQUE NO MONSTRO NO CAMPO OU ABAIXO:";
 
-        cancelTargetBtn = CreateButton(targetModePanel.transform, "CancelTargetBtn", "↩️ CANCELAR", new Vector2(0.10f, 0.08f), new Vector2(0.90f, 0.48f), new Color(0.40f, 0.40f, 0.45f));
+        cancelTargetBtn = CreateButton(targetModePanel.transform, "CancelTargetBtn", "[ CANCELAR ]", new Vector2(0.10f, 0.08f), new Vector2(0.90f, 0.48f), new Color(0.40f, 0.40f, 0.45f));
         cancelTargetBtn.onClick.AddListener(CancelTargetingMode);
         targetModePanel.SetActive(false);
 
@@ -247,7 +247,7 @@ public class BattleHUD : MonoBehaviour
 
         GameObject vtObj = CreateUIObject("VictoryTitle", victoryPanel.transform, new Vector2(0.10f, 0.80f), new Vector2(0.90f, 0.96f));
         TextMeshProUGUI vtTmp = vtObj.AddComponent<TextMeshProUGUI>();
-        vtTmp.text = "🏆 SALA LIMPA COM SUCESSO!";
+        vtTmp.text = "=== SALA LIMPA COM SUCESSO! ===";
         vtTmp.fontSize = 28;
         vtTmp.fontStyle = FontStyles.Bold;
         vtTmp.alignment = TextAlignmentOptions.Center;
@@ -260,13 +260,13 @@ public class BattleHUD : MonoBehaviour
         victorySummaryText.color = Color.white;
 
         // 3 Botões Principais no Painel de Vitória:
-        adminPartyBtn = CreateButton(victoryPanel.transform, "AdminPartyBtn", "👑 ADMINISTRAR GRUPO (PONTOS & CURA)", new Vector2(0.15f, 0.28f), new Vector2(0.85f, 0.42f), new Color(0.22f, 0.48f, 0.75f));
+        adminPartyBtn = CreateButton(victoryPanel.transform, "AdminPartyBtn", "[ ADMINISTRAR GRUPO ]", new Vector2(0.15f, 0.28f), new Vector2(0.85f, 0.42f), new Color(0.22f, 0.48f, 0.75f));
         adminPartyBtn.onClick.AddListener(OpenPartyAdminModal);
 
-        nextRoomBtn = CreateButton(victoryPanel.transform, "NextRoomBtn", "🚪 ESCOLHER PRÓXIMA SALA >>", new Vector2(0.15f, 0.14f), new Vector2(0.85f, 0.26f), new Color(0.18f, 0.60f, 0.30f));
+        nextRoomBtn = CreateButton(victoryPanel.transform, "NextRoomBtn", "[ ESCOLHER PRÓXIMA SALA >> ]", new Vector2(0.15f, 0.14f), new Vector2(0.85f, 0.26f), new Color(0.18f, 0.60f, 0.30f));
         nextRoomBtn.onClick.AddListener(OpenDoorSelectionModal);
 
-        retreatBtn = CreateButton(victoryPanel.transform, "RetreatBtn", "🏕️ RETORNAR À GUILDA (SAIR DA MASMORRA)", new Vector2(0.15f, 0.02f), new Vector2(0.85f, 0.12f), new Color(0.55f, 0.35f, 0.15f));
+        retreatBtn = CreateButton(victoryPanel.transform, "RetreatBtn", "[ RETORNAR À GUILDA ]", new Vector2(0.15f, 0.02f), new Vector2(0.85f, 0.12f), new Color(0.55f, 0.35f, 0.15f));
         retreatBtn.onClick.AddListener(OnClickRetreatFromDungeon);
 
         victoryPanel.SetActive(false);
@@ -278,7 +278,7 @@ public class BattleHUD : MonoBehaviour
 
         GameObject admTitleObj = CreateUIObject("AdminTitle", partyAdminModal.transform, new Vector2(0.10f, 0.88f), new Vector2(0.90f, 0.98f));
         TextMeshProUGUI admTitleTmp = admTitleObj.AddComponent<TextMeshProUGUI>();
-        admTitleTmp.text = "👑 ADMINISTRAÇÃO DO GRUPO (PONTOS DE ATRIBUTO & POÇÕES)";
+        admTitleTmp.text = "=== ADMINISTRAÇÃO DO GRUPO (PONTOS & POÇÕES) ===";
         admTitleTmp.fontSize = 24;
         admTitleTmp.fontStyle = FontStyles.Bold;
         admTitleTmp.alignment = TextAlignmentOptions.Center;
@@ -293,7 +293,7 @@ public class BattleHUD : MonoBehaviour
         admHlg.childForceExpandWidth = true;
         admHlg.childForceExpandHeight = true;
 
-        closeAdminModalBtn = CreateButton(partyAdminModal.transform, "CloseAdminBtn", "⬅️ CONCLUIR E VOLTAR", new Vector2(0.35f, 0.02f), new Vector2(0.65f, 0.10f), new Color(0.35f, 0.40f, 0.50f));
+        closeAdminModalBtn = CreateButton(partyAdminModal.transform, "CloseAdminBtn", "[ CONCLUIR E VOLTAR ]", new Vector2(0.35f, 0.02f), new Vector2(0.65f, 0.10f), new Color(0.35f, 0.40f, 0.50f));
         closeAdminModalBtn.onClick.AddListener(ClosePartyAdminModal);
         partyAdminModal.SetActive(false);
 
@@ -304,7 +304,7 @@ public class BattleHUD : MonoBehaviour
 
         GameObject doorTitleObj = CreateUIObject("DoorTitle", doorSelectionModal.transform, new Vector2(0.10f, 0.82f), new Vector2(0.90f, 0.96f));
         TextMeshProUGUI doorTitleTmp = doorTitleObj.AddComponent<TextMeshProUGUI>();
-        doorTitleTmp.text = "🚪 ESCOLHA SEU PRÓXIMO DESTINO";
+        doorTitleTmp.text = "=== ESCOLHA SEU PRÓXIMO DESTINO ===";
         doorTitleTmp.fontSize = 26;
         doorTitleTmp.fontStyle = FontStyles.Bold;
         doorTitleTmp.alignment = TextAlignmentOptions.Center;
@@ -319,7 +319,7 @@ public class BattleHUD : MonoBehaviour
         doorHlg.childForceExpandWidth = true;
         doorHlg.childForceExpandHeight = true;
 
-        closeDoorsModalBtn = CreateButton(doorSelectionModal.transform, "CloseDoorsBtn", "⬅️ VOLTAR", new Vector2(0.40f, 0.04f), new Vector2(0.60f, 0.14f), new Color(0.40f, 0.40f, 0.45f));
+        closeDoorsModalBtn = CreateButton(doorSelectionModal.transform, "CloseDoorsBtn", "[ VOLTAR ]", new Vector2(0.40f, 0.04f), new Vector2(0.60f, 0.14f), new Color(0.40f, 0.40f, 0.45f));
         closeDoorsModalBtn.onClick.AddListener(() => doorSelectionModal.SetActive(false));
         doorSelectionModal.SetActive(false);
 
@@ -330,13 +330,13 @@ public class BattleHUD : MonoBehaviour
 
         GameObject defTitleObj = CreateUIObject("DefeatTitle", defeatPanel.transform, new Vector2(0.10f, 0.60f), new Vector2(0.90f, 0.90f));
         TextMeshProUGUI defTitleTmp = defTitleObj.AddComponent<TextMeshProUGUI>();
-        defTitleTmp.text = "☠️ GRUPO DERROTADO!\nTodos os heróis caíram na masmorra.";
+        defTitleTmp.text = "=== GRUPO DERROTADO! ===\nTodos os heróis caíram na masmorra.";
         defTitleTmp.fontSize = 24;
         defTitleTmp.fontStyle = FontStyles.Bold;
         defTitleTmp.alignment = TextAlignmentOptions.Center;
         defTitleTmp.color = Color.white;
 
-        restartFloorBtn = CreateButton(defeatPanel.transform, "RestartFloorBtn", "🔄 REINICIAR ANDAR", new Vector2(0.25f, 0.15f), new Vector2(0.75f, 0.45f), new Color(0.75f, 0.20f, 0.25f));
+        restartFloorBtn = CreateButton(defeatPanel.transform, "RestartFloorBtn", "[ REINICIAR ANDAR ]", new Vector2(0.25f, 0.15f), new Vector2(0.75f, 0.45f), new Color(0.75f, 0.20f, 0.25f));
         restartFloorBtn.onClick.AddListener(() => {
             defeatPanel.SetActive(false);
             if (PartyManager.Instance != null)
@@ -599,7 +599,7 @@ public class BattleHUD : MonoBehaviour
                 else
                     stateTag = "<color=#69F0AE>[PRONTO]</color>";
 
-                hbcd.statusBadgeText.text = $"🧪 {h.healingPotions}/6  {stateTag}";
+                hbcd.statusBadgeText.text = $"Poções: {h.healingPotions}/6  {stateTag}";
             }
             else
             {
@@ -607,7 +607,7 @@ public class BattleHUD : MonoBehaviour
                 hfd.cardImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
 
                 hbcd.statsText.text = "<color=red>[CAÍDO EM COMBATE]</color>";
-                hbcd.statusBadgeText.text = "🧪 0/6";
+                hbcd.statusBadgeText.text = "Poções: 0/6";
                 hbcd.bgImage.color = new Color(0.18f, 0.18f, 0.18f, 0.5f);
             }
         }
@@ -638,7 +638,7 @@ public class BattleHUD : MonoBehaviour
         UpdateAllStats();
 
         if (turnBannerText != null)
-            turnBannerText.text = $"👑 FASE DO JOGADOR - RODADA {BattleManager.Instance.currentTurnRound}";
+            turnBannerText.text = $"=== FASE DO JOGADOR (RODADA {BattleManager.Instance.currentTurnRound}) ===";
 
         if (hero == null)
         {
@@ -653,13 +653,13 @@ public class BattleHUD : MonoBehaviour
 
         commandHeaderTitle.text = $"HERÓI: {hero.heroName.ToUpper()}";
         if (potionBtnText != null)
-            potionBtnText.text = $"🧪 POÇÃO ({hero.healingPotions}/6)";
+            potionBtnText.text = $"POÇÃO ({hero.healingPotions}/6)";
 
         if (combatLogText != null)
         {
             combatLogText.text = canAct 
-                ? $"👉 Vez de <b>{hero.heroName}</b>! Escolha uma ação: [Atacar], [Poção], [Defender] ou selecione outro herói."
-                : $"⚠️ <b>{hero.heroName}</b> já agiu nesta rodada. Selecione outro aventureiro!";
+                ? $"Vez de <b>{hero.heroName}</b>! Escolha uma ação: [Atacar], [Poção], [Defender] ou selecione outro herói."
+                : $"<b>{hero.heroName}</b> já agiu nesta rodada. Selecione outro aventureiro!";
         }
 
         attackBtn.interactable = canAct;
@@ -701,7 +701,7 @@ public class BattleHUD : MonoBehaviour
         UpdateAllStats();
 
         if (turnBannerText != null)
-            turnBannerText.text = "👹 FASE DOS MONSTROS";
+            turnBannerText.text = "=== FASE DOS MONSTROS ===";
 
         commandHeaderTitle.text = "TURNO INIMIGO";
         attackBtn.interactable = false;
@@ -745,7 +745,7 @@ public class BattleHUD : MonoBehaviour
         if (targetModePanel != null) targetModePanel.SetActive(true);
 
         if (combatLogText != null)
-            combatLogText.text = "🎯 <b>Escolha qual criatura atacar:</b> Clique no monstro no campo de batalha!";
+            combatLogText.text = "<b>Escolha qual criatura atacar:</b> Clique no monstro no campo de batalha!";
 
         // Destaca os monstros vivos no campo com cor pulsante/vermelha
         for (int i = 0; i < enemyFieldDisplays.Count; i++)
@@ -828,7 +828,7 @@ public class BattleHUD : MonoBehaviour
 
         if (totalUnallocated > 0)
         {
-            levelUpNotice = $"\n\n⭐ <color=#FFD700><b>LEVEL UP NO GRUPO!</b></color>\nVocê tem {totalUnallocated} pontos de atributo para distribuir no menu [ADMINISTRAR GRUPO]!";
+            levelUpNotice = $"\n\n<color=#FFD700><b>[LEVEL UP NO GRUPO!]</b></color>\nVocê tem {totalUnallocated} pontos de atributo para distribuir no menu [ADMINISTRAR GRUPO]!";
         }
 
         if (victorySummaryText != null)
@@ -883,7 +883,7 @@ public class BattleHUD : MonoBehaviour
             GameObject ptsObj = CreateUIObject("PointsText", cardObj.transform, new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.84f));
             TextMeshProUGUI ptsTmp = ptsObj.AddComponent<TextMeshProUGUI>();
             ptsTmp.text = hero.unallocatedAttributePoints > 0 
-                ? $"⭐ <color=#FFD700><b>Pontos Livres: {hero.unallocatedAttributePoints}</b></color>"
+                ? $"<color=#FFD700><b>Pontos Livres: {hero.unallocatedAttributePoints}</b></color>"
                 : "<color=#888888>Sem pontos livres</color>";
             ptsTmp.fontSize = 14;
             ptsTmp.alignment = TextAlignmentOptions.Center;
@@ -897,7 +897,7 @@ public class BattleHUD : MonoBehaviour
 
             // Botão de Usar Poção de Cura fora de combate
             int healVal = Mathf.RoundToInt(hero.GetMaxHP() * 0.35f) + 10;
-            Button healBtn = CreateButton(cardObj.transform, "HealBtn", $"🧪 CURAR (+{healVal} HP) [{hero.healingPotions}/6]", new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.12f), new Color(0.18f, 0.55f, 0.30f));
+            Button healBtn = CreateButton(cardObj.transform, "HealBtn", $"[ CURAR (+{healVal} HP) ] ({hero.healingPotions}/6)", new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.12f), new Color(0.18f, 0.55f, 0.30f));
             healBtn.interactable = hero.healingPotions > 0 && hero.currentHP < hero.GetMaxHP();
             healBtn.onClick.AddListener(() => {
                 if (hero.UseHealingPotion(out int healed))
