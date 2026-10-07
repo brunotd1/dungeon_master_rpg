@@ -45,8 +45,6 @@ public class BattleHUD : MonoBehaviour
     private List<HeroDisplayUI> heroDisplays = new List<HeroDisplayUI>();
     private List<EnemyDisplayUI> enemyDisplays = new List<EnemyDisplayUI>();
 
-    private bool isTargetingEnemy = false;
-
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -69,7 +67,7 @@ public class BattleHUD : MonoBehaviour
     /// </summary>
     public void EnsureEventSystem()
     {
-        if (FindFirstObjectByType<EventSystem>() == null)
+        if (FindAnyObjectByType<EventSystem>() == null)
         {
             GameObject esObj = new GameObject("EventSystem");
             esObj.AddComponent<EventSystem>();
@@ -88,7 +86,7 @@ public class BattleHUD : MonoBehaviour
 
         if (battleCanvas == null)
         {
-            battleCanvas = FindFirstObjectByType<Canvas>();
+            battleCanvas = FindAnyObjectByType<Canvas>();
             if (battleCanvas == null)
             {
                 GameObject canvasObj = new GameObject("BattleCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -540,7 +538,6 @@ public class BattleHUD : MonoBehaviour
 
     public void ShowTargetSelection()
     {
-        isTargetingEnemy = true;
         combatLogText.text = ">> <b>Escolha qual monstro atacar:</b>";
 
         // Esconde botões de ação temporariamente
@@ -584,7 +581,6 @@ public class BattleHUD : MonoBehaviour
 
     public void HideTargetSelection()
     {
-        isTargetingEnemy = false;
         if (targetSelectionBar != null)
             targetSelectionBar.SetActive(false);
 

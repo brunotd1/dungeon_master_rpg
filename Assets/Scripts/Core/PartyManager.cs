@@ -15,7 +15,7 @@ public class PartyManager : MonoBehaviour
         {
             if (_instance == null)
             {
-                _instance = FindObjectOfType<PartyManager>();
+                _instance = FindAnyObjectByType<PartyManager>();
             }
             return _instance;
         }
