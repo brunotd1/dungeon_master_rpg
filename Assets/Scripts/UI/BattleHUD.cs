@@ -75,6 +75,7 @@ public class BattleHUD : MonoBehaviour
     private List<EnemyFieldDisplay> enemyFieldDisplays = new List<EnemyFieldDisplay>();
 
     private bool isTargetingMode = false;
+    public bool IsTargetingMode => isTargetingMode;
 
     void Awake()
     {
@@ -975,7 +976,7 @@ public class BattleHUD : MonoBehaviour
             // Descrição da Porta
             GameObject descObj = CreateUIObject("Desc", cardObj.transform, new Vector2(0.05f, 0.10f), new Vector2(0.95f, 0.50f));
             TextMeshProUGUI descTmp = descObj.AddComponent<TextMeshProUGUI>();
-            descTmp.text = room.roomDescription;
+            descTmp.text = room.description;
             descTmp.fontSize = 14;
             descTmp.alignment = TextAlignmentOptions.Center;
             descTmp.color = new Color(0.9f, 0.9f, 0.9f);
