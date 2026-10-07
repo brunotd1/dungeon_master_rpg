@@ -307,7 +307,6 @@ public class BattleHUD : MonoBehaviour
     {
         BuildHUDStructureIfNotExisting();
         victoryPanel.SetActive(false);
-        isTargetingEnemy = false;
 
         // Limpa heróis anteriores
         foreach (Transform child in heroesContainer) Destroy(child.gameObject);
