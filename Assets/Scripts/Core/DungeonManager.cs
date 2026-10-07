@@ -133,19 +133,38 @@ public class DungeonManager : MonoBehaviour
                 return;
 
             case RoomType.Boss:
-                Debug.Log($"⚔️ [COMBATE CONTRA O CHEFE] Batalha decisiva contra o Guardião do Andar {currentFloor}!");
-                // Simulação da vitória do Boss para teste (posteriormente ligado ao BattleManager)
-                DefeatFloorBoss();
-                break;
+                Debug.Log($"👹 [GUARDIÃO DO ANDAR] A Guilda adentra a câmara do Chefe do Andar {currentFloor}!");
+                if (BattleManager.Instance != null && BattleManager.Instance.floorBossEnemy != null)
+                {
+                    List<EnemyData> bossEncounter = new List<EnemyData> { BattleManager.Instance.floorBossEnemy };
+                    BattleManager.Instance.StartBattle(bossEncounter);
+                    return; // Aguarda a batalha terminar para continuar
+                }
+                else
+                {
+                    DefeatFloorBoss();
+                    return;
+                }
 
             case RoomType.Combat:
-                Debug.Log($"⚔️ Monstros derrotados! Concedendo recompensas...");
-                if (PartyManager.Instance != null)
+                Debug.Log($"⚔️ [EMBOSCADA] Inimigos avistados na câmara!");
+                if (BattleManager.Instance != null && BattleManager.Instance.commonFloorEnemies != null && BattleManager.Instance.commonFloorEnemies.Length > 0)
+                {
+                    List<EnemyData> encounter = new List<EnemyData>();
+                    int enemyCount = Random.Range(1, 3);
+                    for (int i = 0; i < enemyCount; i++)
+                    {
+                        encounter.Add(BattleManager.Instance.commonFloorEnemies[Random.Range(0, BattleManager.Instance.commonFloorEnemies.Length)]);
+                    }
+                    BattleManager.Instance.StartBattle(encounter);
+                    return; // Aguarda a batalha terminar para continuar
+                }
+                else
                 {
                     int xpReward = 40 * currentFloor;
                     int goldReward = Random.Range(15, 35) * currentFloor;
-                    PartyManager.Instance.DistributeXP(xpReward);
-                    PartyManager.Instance.AddGold(goldReward);
+                    PartyManager.Instance?.DistributeXP(xpReward);
+                    PartyManager.Instance?.AddGold(goldReward);
                 }
                 break;
 
