@@ -137,7 +137,7 @@ public class BattleHUD : MonoBehaviour
             turnBannerText.fontSize = 28;
             turnBannerText.alignment = TextAlignmentOptions.Center;
             turnBannerText.color = new Color(1f, 0.85f, 0.4f); // Dourado
-            turnBannerText.text = "⚔️ ARENA DE BATALHA ⚔️";
+            turnBannerText.text = "=== ARENA DE BATALHA ===";
 
             // Log de Ação (dentro da barra de ação)
             GameObject logObj = new GameObject("CombatLog", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -154,11 +154,11 @@ public class BattleHUD : MonoBehaviour
             combatLogText.text = "A batalha começou! Escolha sua ação.";
 
             // Botão [ATACAR]
-            attackBtn = CreateButton(actionMenuPanel, "AttackButton", "🗡️ ATACAR", new Vector2(0.65f, 0.15f), new Vector2(0.79f, 0.85f), new Color(0.65f, 0.15f, 0.15f));
+            attackBtn = CreateButton(actionMenuPanel, "AttackButton", "[ ATACAR ]", new Vector2(0.65f, 0.15f), new Vector2(0.79f, 0.85f), new Color(0.65f, 0.15f, 0.15f));
             attackBtn.onClick.AddListener(OnClickAttack);
 
             // Botão [DEFENDER]
-            defendBtn = CreateButton(actionMenuPanel, "DefendButton", "🛡️ DEFENDER", new Vector2(0.82f, 0.15f), new Vector2(0.96f, 0.85f), new Color(0.20f, 0.40f, 0.65f));
+            defendBtn = CreateButton(actionMenuPanel, "DefendButton", "[ DEFENDER ]", new Vector2(0.82f, 0.15f), new Vector2(0.96f, 0.85f), new Color(0.20f, 0.40f, 0.65f));
             defendBtn.onClick.AddListener(OnClickDefend);
 
             // 4. Painel de Vitória
@@ -214,7 +214,7 @@ public class BattleHUD : MonoBehaviour
         titleRT.offsetMin = Vector2.zero;
         titleRT.offsetMax = Vector2.zero;
         TextMeshProUGUI titleTmp = titleObj.GetComponent<TextMeshProUGUI>();
-        titleTmp.text = "🏆 VITÓRIA NA MASMORRA! 🏆";
+        titleTmp.text = "=== VITORIA NA MASMORRA! ===";
         titleTmp.fontSize = 28;
         titleTmp.fontStyle = FontStyles.Bold;
         titleTmp.alignment = TextAlignmentOptions.Center;
@@ -232,7 +232,7 @@ public class BattleHUD : MonoBehaviour
         victorySummaryText.alignment = TextAlignmentOptions.Center;
         victorySummaryText.color = Color.white;
 
-        continueExplorationBtn = CreateButton(vObj.transform, "ContinueBtn", "CONTINUAR EXPLORAÇÃO ➡️", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.24f), new Color(0.15f, 0.55f, 0.25f));
+        continueExplorationBtn = CreateButton(vObj.transform, "ContinueBtn", "CONTINUAR EXPLORACAO >>", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.24f), new Color(0.15f, 0.55f, 0.25f));
         continueExplorationBtn.onClick.AddListener(OnClickContinue);
 
         victoryPanel.SetActive(false);
@@ -291,7 +291,7 @@ public class BattleHUD : MonoBehaviour
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
         TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
-        string starBadge = hero.isGoldStar ? $"🌟{hero.currentStars}★" : $"⭐{hero.currentStars}★";
+        string starBadge = hero.isGoldStar ? $"[Ouro {hero.currentStars}*]" : $"[{hero.currentStars}*]";
         nameTmp.text = $"{starBadge} {hero.heroName} <size=14><color=#90CAF9>[{hero.heroClass}]</color></size>";
         nameTmp.fontSize = 17;
         nameTmp.fontStyle = FontStyles.Bold;
@@ -342,7 +342,7 @@ public class BattleHUD : MonoBehaviour
         nameRT.offsetMin = Vector2.zero;
         nameRT.offsetMax = Vector2.zero;
         TextMeshProUGUI nameTmp = nameObj.GetComponent<TextMeshProUGUI>();
-        nameTmp.text = enemy.data.isBoss ? $"👹 {enemy.enemyName}" : $"💀 {enemy.enemyName}";
+        nameTmp.text = enemy.data.isBoss ? $"[CHEFE] {enemy.enemyName}" : $"[MONSTRO] {enemy.enemyName}";
         nameTmp.fontSize = 18;
         nameTmp.fontStyle = FontStyles.Bold;
         nameTmp.color = enemy.data.isBoss ? new Color(1f, 0.3f, 0.3f) : Color.white;
@@ -412,7 +412,7 @@ public class BattleHUD : MonoBehaviour
         UpdateAllStats();
 
         if (turnBannerText != null)
-            turnBannerText.text = $"⚔️ VEZ DE: {activeHero.heroName.ToUpper()}";
+            turnBannerText.text = $"TURNO DE: {activeHero.heroName.ToUpper()}";
 
         if (combatLogText != null)
             combatLogText.text = $"É o turno de <b>{activeHero.heroName}</b>! Escolha [ATACAR] ou [DEFENDER].";
@@ -433,7 +433,7 @@ public class BattleHUD : MonoBehaviour
     public void OnClickAttack()
     {
         isTargetingEnemy = true;
-        combatLogText.text = "🎯 <b>Selecione o monstro</b> que você deseja atacar clicando no cartão dele à esquerda!";
+        combatLogText.text = ">> <b>Selecione o monstro</b> que você deseja atacar clicando no cartão dele à esquerda!";
     }
 
     public void OnClickDefend()
@@ -454,7 +454,7 @@ public class BattleHUD : MonoBehaviour
             foreach (var d in drops) dropsText += $"[{d.itemName}] ";
         }
 
-        victorySummaryText.text = $"✨ <b>Recompensas da Batalha:</b>\n\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}";
+        victorySummaryText.text = $"<b>Recompensas da Batalha:</b>\n\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}";
     }
 
     public void OnClickContinue()

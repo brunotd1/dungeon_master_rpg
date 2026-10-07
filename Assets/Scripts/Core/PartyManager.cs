@@ -8,7 +8,19 @@ using UnityEngine;
 /// </summary>
 public class PartyManager : MonoBehaviour
 {
-    public static PartyManager Instance { get; private set; }
+    private static PartyManager _instance;
+    public static PartyManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<PartyManager>();
+            }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
 
     [Header("Configuração de Convocação")]
     [Tooltip("Se ativado, convoca 4 aventureiros aleatórios proceduralmente no início (estilo Pick Me Up!)")]
@@ -27,12 +39,12 @@ public class PartyManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
+        _instance = this;
     }
 
     void Start()

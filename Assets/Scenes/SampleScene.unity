@@ -416,6 +416,7 @@ GameObject:
   m_Component:
   - component: {fileID: 654343215}
   - component: {fileID: 654343214}
+  - component: {fileID: 654343216}
   m_Layer: 0
   m_Name: BattleManager
   m_TagString: Untagged
@@ -459,6 +460,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &654343216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654343213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2c3d4e5f60718293a4b5c6d7e8f1023, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BattleHUD
+  battleCanvas: {fileID: 0}
+  battleRootPanel: {fileID: 0}
+  heroesContainer: {fileID: 0}
+  enemiesContainer: {fileID: 0}
+  actionMenuPanel: {fileID: 0}
+  turnBannerText: {fileID: 0}
+  combatLogText: {fileID: 0}
+  attackBtn: {fileID: 0}
+  defendBtn: {fileID: 0}
+  victoryPanel: {fileID: 0}
+  victorySummaryText: {fileID: 0}
+  continueExplorationBtn: {fileID: 0}
 --- !u!1 &835270995
 GameObject:
   m_ObjectHideFlags: 0

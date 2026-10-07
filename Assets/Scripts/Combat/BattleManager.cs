@@ -21,6 +21,10 @@ public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance { get; private set; }
 
+    [Header("Configuração de Teste Automático")]
+    [Tooltip("Se ativado, inicia uma batalha automaticamente ao dar Play!")]
+    public bool autoStartBattleOnPlay = true;
+
     [Header("Estado do Combate")]
     public BattleState currentState = BattleState.Idle;
     public int currentTurnRound = 1;
@@ -50,6 +54,20 @@ public class BattleManager : MonoBehaviour
         Instance = this;
     }
 
+    void Start()
+    {
+        if (autoStartBattleOnPlay)
+        {
+            StartCoroutine(AutoStartBattleRoutine());
+        }
+    }
+
+    private IEnumerator AutoStartBattleRoutine()
+    {
+        yield return null; // Aguarda o primeiro frame completo para inicialização de todos os Singletons
+        TestStartBattle();
+    }
+
     /// <summary>
     /// Inicia uma batalha na arena contra monstros do andar ou contra o Boss.
     /// </summary>
@@ -57,8 +75,13 @@ public class BattleManager : MonoBehaviour
     {
         if (PartyManager.Instance == null)
         {
-            Debug.LogError("PartyManager não encontrado na cena!");
-            return;
+            GameObject pmObj = new GameObject("PartyManager", typeof(PartyManager));
+            Debug.Log("[BattleManager] PartyManager criado dinamicamente.");
+        }
+
+        if (PartyManager.Instance.activeParty.Count == 0)
+        {
+            PartyManager.Instance.InitializeParty();
         }
 
         // 1. Carrega os heróis vivos da guilda
