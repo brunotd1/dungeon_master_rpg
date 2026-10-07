@@ -4,6 +4,25 @@ RPG de exploração de masmorras e gerenciamento de guilda desenvolvido em Unity
 
 ---
 
+## 🚀 Como Abrir e Rodar o Projeto no Unity (Guia Rápido)
+1. **Versão recomendada:** Unity 6 (versão `6000.0` ou superior com suporte a URP 2D).
+2. **Clonar o Repositório:**
+   ```bash
+   git clone https://github.com/brunotd1/dungeon_master_rpg.git
+   ```
+3. **Adicionar no Unity Hub:**
+   - Abra o **Unity Hub**;
+   - Clique em **Add** (ou *Adicionar*) -> **Add project from disk**;
+   - Selecione a pasta raiz `dungeon_master_rpg` que foi clonada;
+   - Abra o projeto.
+4. **Abrir a Cena de Jogo:**
+   - No painel *Project* do Unity, acesse: `Assets/Scenes/SampleScene.unity` e dê duplo clique.
+   - *(O script `AutoSceneBootstrap` também carrega esta cena automaticamente se o Unity abrir numa cena vazia).*
+5. **Jogar:**
+   - Aperte o botão **Play** no topo do Unity. O combate se iniciará imediatamente com a interface de batalha interativa!
+
+---
+
 ## 📌 1. Visão Geral
 * **Gênero:** RPG Dungeon Crawler / Guild Master com Combate Clássico por Turnos.
 * **Inspiração Principal:** *Pick Me Up! Infinite Gacha* (torre de 100 andares, gacha de heróis, estrelas, level cap, permadeath e grind pós-boss).

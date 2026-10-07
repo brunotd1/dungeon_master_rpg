@@ -14,7 +14,24 @@ using TMPro;
 /// </summary>
 public class BattleHUD : MonoBehaviour
 {
-    public static BattleHUD Instance { get; private set; }
+    private static BattleHUD _instance;
+    public static BattleHUD Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<BattleHUD>();
+                if (_instance == null)
+                {
+                    GameObject hudObj = new GameObject("BattleHUD", typeof(BattleHUD));
+                    _instance = hudObj.GetComponent<BattleHUD>();
+                }
+            }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
 
     [Header("Elementos de Interface")]
     public Canvas battleCanvas;
@@ -79,12 +96,12 @@ public class BattleHUD : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
+        _instance = this;
         EnsureEventSystem();
     }
 
@@ -99,13 +116,33 @@ public class BattleHUD : MonoBehaviour
     /// </summary>
     public void EnsureEventSystem()
     {
-        if (FindAnyObjectByType<EventSystem>() == null)
+        EventSystem es = FindAnyObjectByType<EventSystem>();
+        if (es == null)
         {
             GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<EventSystem>();
+            es = esObj.AddComponent<EventSystem>();
             var module = esObj.AddComponent<InputSystemUIInputModule>();
             module.AssignDefaultActions();
-            Debug.Log("[BattleHUD] EventSystem e InputSystemUIInputModule ativos.");
+            Debug.Log("[BattleHUD] EventSystem e InputSystemUIInputModule criados dinamicamente.");
+        }
+        else
+        {
+            var oldModule = es.GetComponent<StandaloneInputModule>();
+            if (oldModule != null)
+            {
+                DestroyImmediate(oldModule);
+            }
+
+            var module = es.GetComponent<InputSystemUIInputModule>();
+            if (module == null)
+            {
+                module = es.gameObject.AddComponent<InputSystemUIInputModule>();
+                module.AssignDefaultActions();
+            }
+            else if (module.actionsAsset == null)
+            {
+                module.AssignDefaultActions();
+            }
         }
     }
 
@@ -360,6 +397,7 @@ public class BattleHUD : MonoBehaviour
     public void RefreshBattleArena(List<HeroInstance> heroes, List<EnemyInstance> enemies)
     {
         BuildHUDStructureIfNotExisting();
+        if (battleRootPanel != null) battleRootPanel.SetActive(true);
 
         victoryPanel.SetActive(false);
         partyAdminModal.SetActive(false);
@@ -458,7 +496,7 @@ public class BattleHUD : MonoBehaviour
         // Nome e Estrelas
         GameObject nameObj = CreateUIObject("Name", heroObj.transform, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
-        string starBadge = hero.isGoldStar ? $"<color=#FFD700>[{hero.currentStars}★]</color>" : $"<color=#C0C0C0>[{hero.currentStars}★]</color>";
+        string starBadge = hero.isGoldStar ? $"<color=#FFD700>[{hero.currentStars}* Ouro]</color>" : $"<color=#C0C0C0>[{hero.currentStars}*]</color>";
         nameTmp.text = $"{starBadge} <b>{hero.heroName}</b> <size=13><color=#90CAF9>[{hero.heroClass}]</color></size>";
         nameTmp.fontSize = 16;
         nameTmp.alignment = TextAlignmentOptions.Left;

@@ -19,7 +19,19 @@ public enum BattleState
 /// </summary>
 public class BattleManager : MonoBehaviour
 {
-    public static BattleManager Instance { get; private set; }
+    private static BattleManager _instance;
+    public static BattleManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<BattleManager>();
+            }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
 
     [Header("Configuração de Teste Automático")]
     [Tooltip("Se ativado, inicia uma batalha automaticamente ao dar Play!")]
@@ -46,12 +58,57 @@ public class BattleManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;
+        _instance = this;
+        EnsureDefaultEnemies();
+    }
+
+    /// <summary>
+    /// Garante que mesmo que o projeto seja aberto pela primeira vez sem referências configuradas no Inspector,
+    /// existam monstros funcionais para o jogo iniciar sem erros.
+    /// </summary>
+    public void EnsureDefaultEnemies()
+    {
+        if (commonFloorEnemies == null || commonFloorEnemies.Length == 0)
+        {
+            EnemyData goblin = ScriptableObject.CreateInstance<EnemyData>();
+            goblin.enemyName = "Goblin Lanceiro";
+            goblin.maxHP = 45;
+            goblin.attack = 10;
+            goblin.defense = 3;
+            goblin.speed = 12;
+            goblin.xpReward = 25;
+            goblin.goldReward = 15;
+
+            EnemyData skeleton = ScriptableObject.CreateInstance<EnemyData>();
+            skeleton.enemyName = "Esqueleto Guerreiro";
+            skeleton.maxHP = 60;
+            skeleton.attack = 14;
+            skeleton.defense = 6;
+            skeleton.speed = 8;
+            skeleton.xpReward = 35;
+            skeleton.goldReward = 20;
+
+            commonFloorEnemies = new EnemyData[] { goblin, skeleton };
+        }
+
+        if (floorBossEnemy == null)
+        {
+            EnemyData boss = ScriptableObject.CreateInstance<EnemyData>();
+            boss.enemyName = "Guardião de Pedra (Chefe)";
+            boss.maxHP = 220;
+            boss.attack = 22;
+            boss.defense = 12;
+            boss.speed = 10;
+            boss.xpReward = 200;
+            boss.goldReward = 150;
+            boss.isBoss = true;
+            floorBossEnemy = boss;
+        }
     }
 
     void Start()
@@ -115,9 +172,13 @@ public class BattleManager : MonoBehaviour
 
         Debug.Log($"⚔️ [BATALHA INICIADA] {heroesInBattle.Count} Heróis vs {enemiesInBattle.Count} Monstros!");
 
+        if (BattleHUD.Instance == null)
+        {
+            GameObject hudObj = new GameObject("BattleHUD", typeof(BattleHUD));
+        }
+
         if (BattleHUD.Instance != null)
         {
-            BattleHUD.Instance.battleRootPanel.SetActive(true);
             BattleHUD.Instance.RefreshBattleArena(heroesInBattle, enemiesInBattle);
         }
 
