@@ -88,6 +88,13 @@ public class BattleManager : MonoBehaviour
         currentHeroIndex = 0;
 
         Debug.Log($"⚔️ [BATALHA INICIADA] {heroesInBattle.Count} Heróis vs {enemiesInBattle.Count} Monstros!");
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.battleRootPanel.SetActive(true);
+            BattleHUD.Instance.RefreshBattleArena(heroesInBattle, enemiesInBattle);
+        }
+
         StartHeroTurn();
     }
 
@@ -109,6 +116,11 @@ public class BattleManager : MonoBehaviour
         currentState = BattleState.HeroTurn;
         HeroInstance actingHero = CurrentHero;
         Debug.Log($"👉 [SUA VEZ] É a vez de {actingHero.heroName} ({actingHero.heroClass})! Escolha sua ação: [Atacar], [Defender] ou [Habilidade].");
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.SetHeroTurnUI(actingHero);
+        }
     }
 
     #region Ações do Jogador (Comandos Estilo Final Fantasy)
@@ -140,6 +152,14 @@ public class BattleManager : MonoBehaviour
 
         Debug.Log($"🗡️ {attacker.heroName} desferiu um ataque contra {target.enemyName}!");
         target.TakeDamage(attackPower);
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.UpdateAllStats();
+            BattleHUD.Instance.combatLogText.text = isCrit 
+                ? $"⚡ <b>CRÍTICO!</b> {attacker.heroName} causou {attackPower} de dano a {target.enemyName}!"
+                : $"🗡️ {attacker.heroName} causou {attackPower} de dano a {target.enemyName}!";
+        }
 
         if (!target.IsAlive)
         {
@@ -204,6 +224,12 @@ public class BattleManager : MonoBehaviour
 
             Debug.Log($"💢 {enemy.enemyName} atacou {targetHero.heroName}!");
             targetHero.TakeDamage(rawDamage);
+
+            if (BattleHUD.Instance != null)
+            {
+                BattleHUD.Instance.UpdateAllStats();
+                BattleHUD.Instance.combatLogText.text = $"💢 {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano!";
+            }
 
             if (!targetHero.IsAlive)
             {
@@ -296,6 +322,11 @@ public class BattleManager : MonoBehaviour
             {
                 DungeonManager.Instance.GenerateDoors();
             }
+        }
+
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.ShowVictory(totalXP, totalGold, lootDropped);
         }
     }
 
