@@ -56,10 +56,17 @@ O limite de nível é estritamente travado pelas estrelas do aventureiro:
 * `PartyManager.cs`: Gerenciador do grupo de 4 heróis, bolsa de ouro e divisão de XP.
 * `DungeonRoom.cs`: Definição dos tipos de salas da masmorra.
 * `DungeonManager.cs`: Gerenciador dos andares, gerador de portas e controle do boss.
+* `EnemyData.cs` & `EnemyInstance.cs`: Modelos de monstros, chefes de andar, cálculo de dano e tabela de loot.
+* `BattleManager.cs`: Motor de combate por turnos JRPG (iniciativa por velocidade, turnos de heróis e IA dos monstros, postura de defesa e cálculo de dano físico/crítico).
+* `BattleHUD.cs`: Interface gráfica dinâmica (estilo Final Fantasy), cartões dos heróis e monstros com HP/MP, banners de rodada e menu interativo de seleção de alvos com cliques de mouse.
 
 ---
 
-## 🎯 6. Próxima Etapa
-* Construção da Arena de Combate Estilo Final Fantasy (visão lateral).
-* Menus de combate por turno: Atacar, Habilidade/Magia, Item, Defender.
-* Barras de HP/MP visuais na tela.
+## 🎯 6. Status Atual e Próximos Passos
+* ✅ **Mundo e Classes:** 4 classes implementadas com atributos, estrelas, level caps e requisitos estilo Souls.
+* ✅ **Masmorra e Exploração:** Lógica de 100 andares com portas dinâmicas e grind pós-chefe.
+* ✅ **Combate por Turnos Completo:** Arena visual interativa em tempo real com seleção de alvos por clique e botões de ação.
+* 🔜 **Próximos Passos (Amanhã):**
+  * Habilidades e magias ativas de cada classe (Golpe Pesado, Provocação/Taunt, Bola de Fogo, Ataque Furtivo).
+  * Interface visual de seleção de portas da masmorra (porta de combate, baú, descanso).
+  * Tela de inventário e equipamentos com verificação dos atributos dos heróis.
