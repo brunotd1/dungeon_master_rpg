@@ -32,6 +32,10 @@ public class BattleHUD : MonoBehaviour
     public Button attackBtn;
     public Button defendBtn;
 
+    [Header("Seleção Direta de Alvo")]
+    public GameObject targetSelectionBar;
+    private List<Button> dynamicTargetButtons = new List<Button>();
+
     [Header("Painel de Vitória / Espólios")]
     public GameObject victoryPanel;
     public TextMeshProUGUI victorySummaryText;
@@ -127,7 +131,7 @@ public class BattleHUD : MonoBehaviour
             heroesContainer.offsetMax = Vector2.zero;
             VerticalLayoutGroup vlgH = heroesObj.GetComponent<VerticalLayoutGroup>();
             vlgH.spacing = 15;
-            vlgH.childControlHeight = true;
+            vlgH.childControlHeight = false; // Preserva a altura de 110px de cada cartão!
             vlgH.childControlWidth = true;
             vlgH.childForceExpandHeight = false;
 
@@ -141,7 +145,7 @@ public class BattleHUD : MonoBehaviour
             enemiesContainer.offsetMax = Vector2.zero;
             VerticalLayoutGroup vlgE = enemiesObj.GetComponent<VerticalLayoutGroup>();
             vlgE.spacing = 20;
-            vlgE.childControlHeight = true;
+            vlgE.childControlHeight = false; // Preserva a altura de 110px de cada cartão!
             vlgE.childControlWidth = true;
             vlgE.childForceExpandHeight = false;
 
@@ -174,7 +178,7 @@ public class BattleHUD : MonoBehaviour
             logObj.transform.SetParent(actionMenuPanel, false);
             RectTransform logRT = logObj.GetComponent<RectTransform>();
             logRT.anchorMin = new Vector2(0.02f, 0.1f);
-            logRT.anchorMax = new Vector2(0.60f, 0.9f);
+            logRT.anchorMax = new Vector2(0.55f, 0.9f);
             logRT.offsetMin = Vector2.zero;
             logRT.offsetMax = Vector2.zero;
             combatLogText = logObj.GetComponent<TextMeshProUGUI>();
@@ -184,12 +188,29 @@ public class BattleHUD : MonoBehaviour
             combatLogText.text = "A batalha começou! Escolha sua ação.";
 
             // Botão [ATACAR]
-            attackBtn = CreateButton(actionMenuPanel, "AttackButton", "[ ATACAR ]", new Vector2(0.65f, 0.15f), new Vector2(0.79f, 0.85f), new Color(0.65f, 0.15f, 0.15f));
+            attackBtn = CreateButton(actionMenuPanel, "AttackButton", "[ ATACAR ]", new Vector2(0.60f, 0.15f), new Vector2(0.78f, 0.85f), new Color(0.65f, 0.15f, 0.15f));
             attackBtn.onClick.AddListener(OnClickAttack);
 
             // Botão [DEFENDER]
-            defendBtn = CreateButton(actionMenuPanel, "DefendButton", "[ DEFENDER ]", new Vector2(0.82f, 0.15f), new Vector2(0.96f, 0.85f), new Color(0.20f, 0.40f, 0.65f));
+            defendBtn = CreateButton(actionMenuPanel, "DefendButton", "[ DEFENDER ]", new Vector2(0.81f, 0.15f), new Vector2(0.98f, 0.85f), new Color(0.20f, 0.40f, 0.65f));
             defendBtn.onClick.AddListener(OnClickDefend);
+
+            // Barra de Seleção Direta de Alvo (inicialmente desativada)
+            GameObject targetBarObj = new GameObject("TargetSelectionBar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            targetBarObj.transform.SetParent(actionMenuPanel, false);
+            RectTransform targetRT = targetBarObj.GetComponent<RectTransform>();
+            targetRT.anchorMin = new Vector2(0.55f, 0.15f);
+            targetRT.anchorMax = new Vector2(0.98f, 0.85f);
+            targetRT.offsetMin = Vector2.zero;
+            targetRT.offsetMax = Vector2.zero;
+            HorizontalLayoutGroup hlg = targetBarObj.GetComponent<HorizontalLayoutGroup>();
+            hlg.spacing = 10;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+            targetSelectionBar = targetBarObj;
+            targetSelectionBar.SetActive(false);
 
             // 4. Painel de Vitória
             CreateVictoryPanel();
@@ -318,10 +339,13 @@ public class BattleHUD : MonoBehaviour
 
     private HeroDisplayUI CreateHeroCard(HeroInstance hero, int index)
     {
-        GameObject cardObj = new GameObject($"HeroCard_{hero.heroName}", typeof(RectTransform), typeof(Image));
+        GameObject cardObj = new GameObject($"HeroCard_{hero.heroName}", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
         cardObj.transform.SetParent(heroesContainer, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(0, 110);
+        LayoutElement le = cardObj.GetComponent<LayoutElement>();
+        le.preferredHeight = 110;
+        le.minHeight = 110;
         Image bg = cardObj.GetComponent<Image>();
         bg.color = new Color(0.14f, 0.17f, 0.24f, 0.95f);
 
@@ -372,10 +396,13 @@ public class BattleHUD : MonoBehaviour
 
     private EnemyDisplayUI CreateEnemyCard(EnemyInstance enemy, int index)
     {
-        GameObject cardObj = new GameObject($"EnemyCard_{enemy.enemyName}", typeof(RectTransform), typeof(Image), typeof(Button));
+        GameObject cardObj = new GameObject($"EnemyCard_{enemy.enemyName}", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         cardObj.transform.SetParent(enemiesContainer, false);
         RectTransform rt = cardObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(0, 105);
+        rt.sizeDelta = new Vector2(0, 110);
+        LayoutElement le = cardObj.GetComponent<LayoutElement>();
+        le.preferredHeight = 110;
+        le.minHeight = 110;
         Image bg = cardObj.GetComponent<Image>();
         bg.color = new Color(0.38f, 0.14f, 0.16f, 0.95f);
 
@@ -415,12 +442,12 @@ public class BattleHUD : MonoBehaviour
         hpTmp.color = new Color(1f, 0.45f, 0.45f);
         hpTmp.raycastTarget = false;
 
-        // Clique para atacar diretamente este monstro
+        // Clique para atacar diretamente este monstro no campo
+        int targetIdx = index;
         btn.onClick.AddListener(() => {
             if (BattleManager.Instance.currentState == BattleState.HeroTurn)
             {
-                BattleManager.Instance.PlayerAttack(index);
-                isTargetingEnemy = false;
+                ExecuteAttackOn(targetIdx);
             }
         });
 
@@ -472,13 +499,15 @@ public class BattleHUD : MonoBehaviour
         if (combatLogText != null)
             combatLogText.text = $"É o turno de <b>{activeHero.heroName}</b>! Escolha [ATACAR] ou [DEFENDER].";
 
+        HideTargetSelection();
+
         // Destaca a moldura do herói ativo
         for (int i = 0; i < heroDisplays.Count; i++)
         {
             if (heroDisplays[i].hero == activeHero)
                 heroDisplays[i].cardImage.color = new Color(0.25f, 0.45f, 0.70f, 1f); // Azul brilhante
             else if (heroDisplays[i].hero.IsAlive)
-                heroDisplays[i].cardImage.color = new Color(0.18f, 0.22f, 0.30f, 0.90f);
+                heroDisplays[i].cardImage.color = new Color(0.14f, 0.17f, 0.24f, 0.95f);
         }
 
         attackBtn.interactable = true;
@@ -501,27 +530,86 @@ public class BattleHUD : MonoBehaviour
         // Se houver apenas 1 monstro vivo, ataca direto com um único clique!
         if (aliveCount == 1 && firstAlive != -1)
         {
-            BattleManager.Instance.PlayerAttack(firstAlive);
-            isTargetingEnemy = false;
+            ExecuteAttackOn(firstAlive);
             return;
         }
 
-        // Se houver mais de um, ativa mira e destaca visualmente os cartões
-        isTargetingEnemy = true;
-        combatLogText.text = ">> <b>CLIQUE NO MONSTRO</b> (cartão vermelho à esquerda) que deseja golpear!";
+        // Se houver mais de um, exibe os botões de seleção de alvo na barra e destaca os cartões
+        ShowTargetSelection();
+    }
 
+    public void ShowTargetSelection()
+    {
+        isTargetingEnemy = true;
+        combatLogText.text = ">> <b>Escolha qual monstro atacar:</b>";
+
+        // Esconde botões de ação temporariamente
+        attackBtn.gameObject.SetActive(false);
+        defendBtn.gameObject.SetActive(false);
+
+        // Limpa botões antigos de alvo
+        foreach (var b in dynamicTargetButtons)
+        {
+            if (b != null) Destroy(b.gameObject);
+        }
+        dynamicTargetButtons.Clear();
+
+        if (targetSelectionBar != null)
+        {
+            targetSelectionBar.SetActive(true);
+
+            for (int i = 0; i < enemyDisplays.Count; i++)
+            {
+                int monsterIdx = i;
+                var enemy = enemyDisplays[i].enemy;
+                if (enemy != null && enemy.IsAlive)
+                {
+                    Button btn = CreateButton(targetSelectionBar.transform, $"TargetBtn_{i}", $"[ {enemy.enemyName} ]", Vector2.zero, Vector2.one, new Color(0.70f, 0.18f, 0.22f));
+                    btn.onClick.AddListener(() => {
+                        ExecuteAttackOn(monsterIdx);
+                    });
+                    dynamicTargetButtons.Add(btn);
+
+                    // Destaque visual no campo
+                    enemyDisplays[i].cardImage.color = new Color(0.70f, 0.20f, 0.25f, 1f);
+                }
+            }
+
+            // Botão [CANCELAR]
+            Button cancelBtn = CreateButton(targetSelectionBar.transform, "CancelTargetBtn", "[ CANCELAR ]", Vector2.zero, Vector2.one, new Color(0.35f, 0.35f, 0.40f));
+            cancelBtn.onClick.AddListener(HideTargetSelection);
+            dynamicTargetButtons.Add(cancelBtn);
+        }
+    }
+
+    public void HideTargetSelection()
+    {
+        isTargetingEnemy = false;
+        if (targetSelectionBar != null)
+            targetSelectionBar.SetActive(false);
+
+        if (attackBtn != null) attackBtn.gameObject.SetActive(true);
+        if (defendBtn != null) defendBtn.gameObject.SetActive(true);
+
+        // Restaura cores originais dos monstros vivos
         for (int i = 0; i < enemyDisplays.Count; i++)
         {
             if (enemyDisplays[i].enemy != null && enemyDisplays[i].enemy.IsAlive)
             {
-                enemyDisplays[i].cardImage.color = new Color(0.70f, 0.20f, 0.25f, 1f);
+                enemyDisplays[i].cardImage.color = new Color(0.38f, 0.14f, 0.16f, 0.95f);
             }
         }
     }
 
+    public void ExecuteAttackOn(int enemyIndex)
+    {
+        HideTargetSelection();
+        BattleManager.Instance.PlayerAttack(enemyIndex);
+    }
+
     public void OnClickDefend()
     {
-        isTargetingEnemy = false;
+        HideTargetSelection();
         BattleManager.Instance.PlayerDefend();
     }
 
