@@ -52,6 +52,7 @@ public class BattleManager : MonoBehaviour
     [Header("Turno e Seleção")]
     public HeroInstance selectedHero = null;
     public HeroInstance CurrentHero => selectedHero;
+    public HeroSkill pendingSkill = null;
 
     // Registra quais heróis estão em postura defensiva nesta rodada
     private HashSet<HeroInstance> defendingHeroes = new HashSet<HeroInstance>();
@@ -269,9 +270,36 @@ public class BattleManager : MonoBehaviour
     #region Ações do Jogador (Comandos Estilo Final Fantasy)
 
     /// <summary>
-    /// Executa um ataque físico básico contra o monstro selecionado com o herói ativo.
+    /// Prepara a execução de uma habilidade ou ataque específico.
     /// </summary>
-    public void PlayerAttack(int targetEnemyIndex)
+    public void SelectSkillToCast(HeroSkill skill)
+    {
+        if (currentState != BattleState.HeroTurn || selectedHero == null) return;
+        if (selectedHero.hasActedThisRound) return;
+
+        if (skill == null)
+        {
+            skill = (selectedHero.availableSkills != null && selectedHero.availableSkills.Count > 0)
+                ? selectedHero.availableSkills[0]
+                : new HeroSkill("Ataque Básico", "Golpe físico padrão.", 0, 1.0f);
+        }
+
+        if (selectedHero.currentMP < skill.mpCost)
+        {
+            Debug.LogWarning($"[MANA INSUFICIENTE] {selectedHero.heroName} não tem MP suficiente para {skill.skillName} ({selectedHero.currentMP}/{skill.mpCost} MP)!");
+            if (BattleHUD.Instance != null)
+                BattleHUD.Instance.combatLogText.text = $"[AVISO] {selectedHero.heroName} não possui Mana suficiente para {skill.skillName}!";
+            return;
+        }
+
+        pendingSkill = skill;
+        Debug.Log($"🎯 Habilidade selecionada: {skill.skillName} (Custo: {skill.mpCost} MP). Escolha o alvo no campo de batalha!");
+    }
+
+    /// <summary>
+    /// Executa o ataque ou habilidade pendente contra o monstro alvo.
+    /// </summary>
+    public void PlayerExecuteSkillOn(int targetEnemyIndex, HeroSkill skillToUse = null)
     {
         if (currentState != BattleState.HeroTurn || selectedHero == null) return;
         if (selectedHero.hasActedThisRound)
@@ -286,29 +314,56 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
+        HeroSkill skill = skillToUse ?? pendingSkill;
+        if (skill == null)
+        {
+            skill = (selectedHero.availableSkills != null && selectedHero.availableSkills.Count > 0)
+                ? selectedHero.availableSkills[0]
+                : new HeroSkill("Ataque Básico", "Golpe físico padrão.", 0, 1.0f);
+        }
+
+        if (selectedHero.currentMP < skill.mpCost)
+        {
+            Debug.LogWarning($"[MANA INSUFICIENTE] {selectedHero.heroName} não tem MP suficiente para {skill.skillName}!");
+            if (BattleHUD.Instance != null)
+                BattleHUD.Instance.combatLogText.text = $"[AVISO] Mana insuficiente para {skill.skillName}!";
+            return;
+        }
+
         HeroInstance attacker = selectedHero;
         EnemyInstance target = enemiesInBattle[targetEnemyIndex];
 
-        // Cálculo de dano com chance de acerto crítico (Destreza)
-        int attackPower = attacker.GetPhysicalAttack();
-        bool isCrit = Random.Range(0f, 100f) <= attacker.GetCritRate();
+        // Consome MP
+        if (skill.mpCost > 0)
+        {
+            attacker.currentMP = Mathf.Max(0, attacker.currentMP - skill.mpCost);
+        }
+
+        // Cálculo de Dano (Físico ou Mágico com multiplicador de skill)
+        int basePower = skill.isMagic ? attacker.GetMagicAttack() : attacker.GetPhysicalAttack();
+        int attackPower = Mathf.RoundToInt(basePower * skill.damageMultiplier);
+
+        // Cálculo de Crítico
+        float critChance = attacker.GetCritRate() + skill.critBonus;
+        bool isCrit = Random.Range(0f, 100f) <= critChance;
         if (isCrit)
         {
             attackPower = Mathf.RoundToInt(attackPower * 1.75f);
-            Debug.Log($"⚡ GOLPE CRÍTICO!");
+            Debug.Log($"⚡ GOLPE CRÍTICO COM {skill.skillName}!");
         }
 
-        Debug.Log($"🗡️ {attacker.heroName} desferiu um ataque contra {target.enemyName}!");
-        target.TakeDamage(attackPower);
+        Debug.Log($"🗡️ {attacker.heroName} usou {skill.skillName} contra {target.enemyName}!");
+        target.TakeDamage(attackPower, skill.isMagic);
 
         attacker.hasActedThisRound = true;
+        pendingSkill = null;
 
         if (BattleHUD.Instance != null)
         {
             BattleHUD.Instance.UpdateAllStats();
             BattleHUD.Instance.combatLogText.text = isCrit 
-                ? $"[CRÍTICO!] <b>{attacker.heroName}</b> causou {attackPower} de dano a {target.enemyName}!"
-                : $"<b>{attacker.heroName}</b> causou {attackPower} de dano a {target.enemyName}!";
+                ? $"[CRÍTICO!] <b>{attacker.heroName}</b> usou <b>{skill.skillName}</b> causando {attackPower} de dano a {target.enemyName}!"
+                : $"<b>{attacker.heroName}</b> usou <b>{skill.skillName}</b> causando {attackPower} de dano a {target.enemyName}!";
         }
 
         if (!target.IsAlive)
@@ -317,6 +372,14 @@ public class BattleManager : MonoBehaviour
         }
 
         CheckPhaseCompletion();
+    }
+
+    /// <summary>
+    /// Atalho para ataque físico básico contra o monstro (compatibilidade com botões diretos e testes).
+    /// </summary>
+    public void PlayerAttack(int targetEnemyIndex)
+    {
+        PlayerExecuteSkillOn(targetEnemyIndex, null);
     }
 
     /// <summary>

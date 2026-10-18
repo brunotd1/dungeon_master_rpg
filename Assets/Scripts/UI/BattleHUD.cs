@@ -9,8 +9,9 @@ using TMPro;
 /// <summary>
 /// Gerenciador visual da interface de combate e pós-combate (estilo Final Fantasy clássico e Pick Me Up!).
 /// Controla o posicionamento em escada dos heróis na direita, 2 a 6 monstros na esquerda,
-/// a barra inferior de comandos e cartões dos 4 heróis, seleção clicável no campo ou na HUD,
+/// a barra inferior de comandos, a aba dinâmica de status detalhado e seleção de ataques/habilidades do herói,
 /// uso de poções (6 por herói), e a tela pós-combate com administração de atributos e escolha de portas.
+/// Todas as fontes e textos foram padronizados na cor branca para máxima nitidez e leitura.
 /// </summary>
 public class BattleHUD : MonoBehaviour
 {
@@ -45,7 +46,22 @@ public class BattleHUD : MonoBehaviour
     [Header("Barra Inferior (Estilo Final Fantasy / Imagem 3)")]
     public RectTransform bottomBarPanel;
     public RectTransform commandBoxPanel;
-    public RectTransform heroCardsRowPanel;
+
+    [Header("Painel Detalhado do Herói Selecionado (Substitui os cartões)")]
+    public RectTransform heroDetailsPanel;
+    public Transform heroTabsContainer;
+    public GameObject heroStatusView;
+    public GameObject heroAttacksView;
+    public Transform skillCardsContainer;
+    public Button backToStatusBtn;
+    public TextMeshProUGUI attacksViewTitle;
+
+    [Header("Textos de Status do Herói Selecionado")]
+    public Image statusHeroAvatarImage;
+    public TextMeshProUGUI statusHeroTitleText;
+    public TextMeshProUGUI statusVitalsText;
+    public TextMeshProUGUI statusAttributesText;
+    public TextMeshProUGUI statusCombatStatsText;
 
     [Header("Textos do Topo e Log")]
     public TextMeshProUGUI turnBannerText;
@@ -63,7 +79,6 @@ public class BattleHUD : MonoBehaviour
     public GameObject targetModePanel;
     public TextMeshProUGUI targetModePromptText;
     public Button cancelTargetBtn;
-    private List<Button> dynamicTargetButtons = new List<Button>();
 
     [Header("Painéis de Pós-Combate")]
     public GameObject victoryPanel;
@@ -88,7 +103,7 @@ public class BattleHUD : MonoBehaviour
 
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
-    private List<HeroBottomCardDisplay> heroBottomCardDisplays = new List<HeroBottomCardDisplay>();
+    private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
     private List<EnemyFieldDisplay> enemyFieldDisplays = new List<EnemyFieldDisplay>();
 
     private bool isTargetingMode = false;
@@ -173,6 +188,13 @@ public class BattleHUD : MonoBehaviour
         cs.referenceResolution = new Vector2(1920, 1080);
         cs.matchWidthOrHeight = 0.5f;
 
+        // Garante no runtime que o material de fonte padrão seja branco puro
+        TMP_FontAsset defaultFont = TMP_Settings.defaultFontAsset;
+        if (defaultFont != null && defaultFont.material != null)
+        {
+            defaultFont.material.SetColor("_FaceColor", Color.white);
+        }
+
         if (battleRootPanel != null) return;
 
         // 1. Painel Raiz de Batalha (Fundo Geral)
@@ -186,7 +208,7 @@ public class BattleHUD : MonoBehaviour
         turnBannerText.fontSize = 26;
         turnBannerText.fontStyle = FontStyles.Bold;
         turnBannerText.alignment = TextAlignmentOptions.Center;
-        turnBannerText.color = new Color(1f, 0.85f, 0.35f);
+        turnBannerText.color = Color.white;
         turnBannerText.text = "=== ARENA DE COMBATE ===";
 
         // 3. Log de Combate (Logo abaixo do banner)
@@ -194,7 +216,7 @@ public class BattleHUD : MonoBehaviour
         combatLogText = logObj.AddComponent<TextMeshProUGUI>();
         combatLogText.fontSize = 18;
         combatLogText.alignment = TextAlignmentOptions.Center;
-        combatLogText.color = new Color(0.9f, 0.9f, 0.95f);
+        combatLogText.color = Color.white;
         combatLogText.text = "A batalha começou! Selecione seu herói para agir.";
 
         // 4. Área do Campo de Batalha (Arena - 70% superior)
@@ -227,7 +249,7 @@ public class BattleHUD : MonoBehaviour
         commandHeaderTitle.fontSize = 17;
         commandHeaderTitle.fontStyle = FontStyles.Bold;
         commandHeaderTitle.alignment = TextAlignmentOptions.Center;
-        commandHeaderTitle.color = new Color(1f, 0.85f, 0.4f);
+        commandHeaderTitle.color = Color.white;
         commandHeaderTitle.text = "COMANDOS";
 
         // Botões de Ação na Caixa de Comandos
@@ -252,24 +274,94 @@ public class BattleHUD : MonoBehaviour
 
         GameObject promptObj = CreateUIObject("TargetPrompt", targetModePanel.transform, new Vector2(0.04f, 0.55f), new Vector2(0.96f, 0.95f));
         targetModePromptText = promptObj.AddComponent<TextMeshProUGUI>();
-        targetModePromptText.fontSize = 15;
+        targetModePromptText.fontSize = 14;
         targetModePromptText.alignment = TextAlignmentOptions.Center;
-        targetModePromptText.color = new Color(1f, 0.45f, 0.45f);
-        targetModePromptText.text = "CLIQUE NO MONSTRO NO CAMPO OU ABAIXO:";
+        targetModePromptText.color = Color.white;
+        targetModePromptText.text = "CLIQUE NO MONSTRO NO CAMPO:";
 
         cancelTargetBtn = CreateButton(targetModePanel.transform, "CancelTargetBtn", "[ CANCELAR ]", new Vector2(0.10f, 0.08f), new Vector2(0.90f, 0.48f), new Color(0.40f, 0.40f, 0.45f));
         cancelTargetBtn.onClick.AddListener(CancelTargetingMode);
         targetModePanel.SetActive(false);
 
-        // 5B. Fileira de 4 Cartões de Heróis (Lado Direito da barra inferior)
-        GameObject hcrObj = CreateUIObject("HeroCardsRow", bottomBarPanel.transform, new Vector2(0.30f, 0.05f), new Vector2(0.99f, 0.95f));
-        heroCardsRowPanel = hcrObj.GetComponent<RectTransform>();
-        HorizontalLayoutGroup hlg = hcrObj.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 10;
-        hlg.childControlWidth = true;
-        hlg.childControlHeight = true;
-        hlg.childForceExpandWidth = true;
-        hlg.childForceExpandHeight = true;
+        // 5B. Painel Detalhado do Herói Selecionado & Habilidades (Lado Direito da barra inferior)
+        GameObject hdObj = CreateUIObject("HeroDetailsPanel", bottomBarPanel.transform, new Vector2(0.30f, 0.05f), new Vector2(0.99f, 0.95f));
+        heroDetailsPanel = hdObj.GetComponent<RectTransform>();
+        Image hdBg = hdObj.AddComponent<Image>();
+        hdBg.color = new Color(0.12f, 0.15f, 0.22f, 0.98f);
+
+        // Barra de Abas dos Heróis (Topo do painel direito)
+        GameObject tabsObj = CreateUIObject("HeroTabsRow", heroDetailsPanel.transform, new Vector2(0.01f, 0.80f), new Vector2(0.99f, 0.98f));
+        heroTabsContainer = tabsObj.transform;
+        HorizontalLayoutGroup tabsHlg = tabsObj.AddComponent<HorizontalLayoutGroup>();
+        tabsHlg.spacing = 8;
+        tabsHlg.childControlWidth = true;
+        tabsHlg.childControlHeight = true;
+        tabsHlg.childForceExpandWidth = true;
+        tabsHlg.childForceExpandHeight = true;
+
+        // Visualização 1: Status Detalhado do Herói (Vitals, Atributos Primários e Estatísticas de Combate)
+        heroStatusView = CreateUIObject("HeroStatusView", heroDetailsPanel.transform, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.78f));
+
+        // Coluna 1: Avatar, Nome, Nível, Vitais (HP/MP/Poções)
+        GameObject c1Obj = CreateUIObject("Col1_Vitals", heroStatusView.transform, new Vector2(0.00f, 0.00f), new Vector2(0.33f, 1.00f));
+        
+        GameObject c1AvatarObj = CreateUIObject("HeroAvatar", c1Obj.transform, new Vector2(0.02f, 0.08f), new Vector2(0.32f, 0.92f));
+        statusHeroAvatarImage = c1AvatarObj.AddComponent<Image>();
+        statusHeroAvatarImage.preserveAspect = true;
+        statusHeroAvatarImage.raycastTarget = false;
+
+        GameObject c1TitleObj = CreateUIObject("HeroTitle", c1Obj.transform, new Vector2(0.34f, 0.60f), new Vector2(0.98f, 0.98f));
+        statusHeroTitleText = c1TitleObj.AddComponent<TextMeshProUGUI>();
+        statusHeroTitleText.fontSize = 16;
+        statusHeroTitleText.fontStyle = FontStyles.Bold;
+        statusHeroTitleText.color = Color.white;
+
+        GameObject c1VitalsObj = CreateUIObject("HeroVitals", c1Obj.transform, new Vector2(0.34f, 0.02f), new Vector2(0.98f, 0.58f));
+        statusVitalsText = c1VitalsObj.AddComponent<TextMeshProUGUI>();
+        statusVitalsText.fontSize = 14;
+        statusVitalsText.color = Color.white;
+
+        // Coluna 2: Atributos Primários (STR, DEX, INT, VIT)
+        GameObject c2Obj = CreateUIObject("Col2_Attributes", heroStatusView.transform, new Vector2(0.34f, 0.00f), new Vector2(0.66f, 1.00f));
+        GameObject c2TextObj = CreateUIObject("AttrText", c2Obj.transform, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.98f));
+        statusAttributesText = c2TextObj.AddComponent<TextMeshProUGUI>();
+        statusAttributesText.fontSize = 15;
+        statusAttributesText.color = Color.white;
+
+        // Coluna 3: Estatísticas de Combate Derivadas (ATQ, DEF, MATQ, VEL, CRIT)
+        GameObject c3Obj = CreateUIObject("Col3_CombatStats", heroStatusView.transform, new Vector2(0.67f, 0.00f), new Vector2(1.00f, 1.00f));
+        GameObject c3TextObj = CreateUIObject("StatsText", c3Obj.transform, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.98f));
+        statusCombatStatsText = c3TextObj.AddComponent<TextMeshProUGUI>();
+        statusCombatStatsText.fontSize = 15;
+        statusCombatStatsText.color = Color.white;
+
+        // Visualização 2: Lista de Ataques e Habilidades
+        heroAttacksView = CreateUIObject("HeroAttacksView", heroDetailsPanel.transform, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.78f));
+
+        // Topo da aba de ataques: Título e Botão Voltar
+        GameObject atkTopObj = CreateUIObject("AttacksHeader", heroAttacksView.transform, new Vector2(0.00f, 0.74f), new Vector2(1.00f, 1.00f));
+        GameObject atkTitleObj = CreateUIObject("AttacksTitle", atkTopObj.transform, new Vector2(0.01f, 0.00f), new Vector2(0.70f, 1.00f));
+        attacksViewTitle = atkTitleObj.AddComponent<TextMeshProUGUI>();
+        attacksViewTitle.fontSize = 14;
+        attacksViewTitle.fontStyle = FontStyles.Bold;
+        attacksViewTitle.color = Color.white;
+        attacksViewTitle.alignment = TextAlignmentOptions.MidlineLeft;
+        attacksViewTitle.text = "ESCOLHA O ATAQUE OU HABILIDADE:";
+
+        backToStatusBtn = CreateButton(atkTopObj.transform, "BackToStatusBtn", "[ VOLTAR AOS STATUS ]", new Vector2(0.72f, 0.05f), new Vector2(0.99f, 0.95f), new Color(0.35f, 0.38f, 0.45f));
+        backToStatusBtn.onClick.AddListener(ShowHeroStatusView);
+
+        // Container dos Cartões de Habilidades
+        GameObject skillsContObj = CreateUIObject("SkillsContainer", heroAttacksView.transform, new Vector2(0.00f, 0.02f), new Vector2(1.00f, 0.70f));
+        skillCardsContainer = skillsContObj.transform;
+        HorizontalLayoutGroup skillsHlg = skillsContObj.AddComponent<HorizontalLayoutGroup>();
+        skillsHlg.spacing = 10;
+        skillsHlg.childControlWidth = true;
+        skillsHlg.childControlHeight = true;
+        skillsHlg.childForceExpandWidth = true;
+        skillsHlg.childForceExpandHeight = true;
+
+        heroAttacksView.SetActive(false);
 
         // 6. Modais Pós-Combate (Vitória, Administração, Escolha de Portas, Derrota)
         BuildPostCombatPanels();
@@ -288,7 +380,7 @@ public class BattleHUD : MonoBehaviour
         vtTmp.fontSize = 28;
         vtTmp.fontStyle = FontStyles.Bold;
         vtTmp.alignment = TextAlignmentOptions.Center;
-        vtTmp.color = new Color(1f, 0.85f, 0.3f);
+        vtTmp.color = Color.white;
 
         GameObject vsObj = CreateUIObject("VictorySummary", victoryPanel.transform, new Vector2(0.10f, 0.45f), new Vector2(0.90f, 0.78f));
         victorySummaryText = vsObj.AddComponent<TextMeshProUGUI>();
@@ -319,7 +411,7 @@ public class BattleHUD : MonoBehaviour
         admTitleTmp.fontSize = 24;
         admTitleTmp.fontStyle = FontStyles.Bold;
         admTitleTmp.alignment = TextAlignmentOptions.Center;
-        admTitleTmp.color = new Color(1f, 0.85f, 0.35f);
+        admTitleTmp.color = Color.white;
 
         GameObject cardsContObj = CreateUIObject("AdminCardsContainer", partyAdminModal.transform, new Vector2(0.04f, 0.12f), new Vector2(0.96f, 0.86f));
         adminCardsContainer = cardsContObj.transform;
@@ -345,7 +437,7 @@ public class BattleHUD : MonoBehaviour
         doorTitleTmp.fontSize = 26;
         doorTitleTmp.fontStyle = FontStyles.Bold;
         doorTitleTmp.alignment = TextAlignmentOptions.Center;
-        doorTitleTmp.color = new Color(1f, 0.85f, 0.35f);
+        doorTitleTmp.color = Color.white;
 
         GameObject doorCardsObj = CreateUIObject("DoorCardsContainer", doorSelectionModal.transform, new Vector2(0.05f, 0.18f), new Vector2(0.95f, 0.78f));
         doorCardsContainer = doorCardsObj.transform;
@@ -409,18 +501,13 @@ public class BattleHUD : MonoBehaviour
         // Limpa instâncias anteriores
         foreach (Transform child in heroesFieldContainer) Destroy(child.gameObject);
         foreach (Transform child in enemiesFieldContainer) Destroy(child.gameObject);
-        foreach (Transform child in heroCardsRowPanel) Destroy(child.gameObject);
+        foreach (Transform child in heroTabsContainer) Destroy(child.gameObject);
 
         heroFieldDisplays.Clear();
-        heroBottomCardDisplays.Clear();
+        heroTabDisplays.Clear();
         enemyFieldDisplays.Clear();
 
         // 1. Posiciona os Heróis na Arena em Escada (Lado Direito - Estilo Final Fantasy Clássico)
-        // Posições com leve deslocamento em escada:
-        // Herói 0 (topo-direita): X 0.55, Y 0.75
-        // Herói 1 (segundo):      X 0.45, Y 0.51
-        // Herói 2 (terceiro):     X 0.35, Y 0.27
-        // Herói 3 (quarto):       X 0.25, Y 0.03
         float[,] heroPosRatios = new float[,] {
             { 0.48f, 0.72f },
             { 0.38f, 0.48f },
@@ -437,13 +524,12 @@ public class BattleHUD : MonoBehaviour
             HeroFieldDisplay hfd = CreateHeroFieldEntity(hero, i, posX, posY);
             heroFieldDisplays.Add(hfd);
 
-            // Cria o Cartão correspondente na barra inferior (Imagem 3)
-            HeroBottomCardDisplay hbcd = CreateHeroBottomCard(hero, i);
-            heroBottomCardDisplays.Add(hbcd);
+            // Cria a aba correspondente no topo do painel detalhado
+            HeroTabDisplay htd = CreateHeroTab(hero, i);
+            heroTabDisplays.Add(htd);
         }
 
         // 2. Posiciona os Monstros na Arena (Lado Esquerdo - 2 a 6 Monstros)
-        // Se for 1 Boss: posiciona no centro da esquerda com tamanho maior!
         if (enemies.Count == 1 && enemies[0].data.isBoss)
         {
             EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[0], 0, 0.25f, 0.30f, 320, 160, true);
@@ -452,8 +538,7 @@ public class BattleHUD : MonoBehaviour
         else
         {
             // Grade de 2 colunas x 3 linhas
-            // Coluna de Trás (Esquerda): X 0.08 | Coluna da Frente (Direita): X 0.52
-            // Linhas Y: 0.68 (topo), 0.36 (meio), 0.04 (baixo)
+            // Coluna da Frente (Direita): X 0.52 | Coluna de Trás (Esquerda): X 0.08
             float[,] enemySlotPositions = new float[,] {
                 { 0.52f, 0.68f }, // Slot 0: Frente Topo
                 { 0.52f, 0.36f }, // Slot 1: Frente Meio
@@ -493,41 +578,58 @@ public class BattleHUD : MonoBehaviour
             }
         });
 
+        // Avatar do Herói (visão lateral / arte em pixel)
+        GameObject avatarObj = CreateUIObject("Avatar", heroObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.36f, 0.94f));
+        Image avatarImg = avatarObj.AddComponent<Image>();
+        avatarImg.preserveAspect = true;
+        avatarImg.raycastTarget = false;
+        Sprite spr = GetHeroSprite(hero);
+        if (spr != null)
+        {
+            avatarImg.sprite = spr;
+            avatarImg.color = Color.white;
+        }
+        else
+        {
+            avatarImg.color = Color.clear;
+        }
+
         // Nome e Estrelas
-        GameObject nameObj = CreateUIObject("Name", heroObj.transform, new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f));
+        GameObject nameObj = CreateUIObject("Name", heroObj.transform, new Vector2(0.38f, 0.52f), new Vector2(0.98f, 0.95f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
-        string starBadge = hero.isGoldStar ? $"<color=#FFD700>[{hero.currentStars}* Ouro]</color>" : $"<color=#C0C0C0>[{hero.currentStars}*]</color>";
-        nameTmp.text = $"{starBadge} <b>{hero.heroName}</b> <size=13><color=#90CAF9>[{hero.heroClass}]</color></size>";
-        nameTmp.fontSize = 16;
+        string starBadge = hero.isGoldStar ? $"[{hero.currentStars}* Ouro]" : $"[{hero.currentStars}*]";
+        nameTmp.text = $"{starBadge} <b>{hero.heroName}</b>\n<size=12>[{hero.heroClass}]</size>";
+        nameTmp.fontSize = 15;
         nameTmp.alignment = TextAlignmentOptions.Left;
         nameTmp.color = Color.white;
         nameTmp.raycastTarget = false;
 
         // Barra de Vida / Status
-        GameObject hpObj = CreateUIObject("HPText", heroObj.transform, new Vector2(0.05f, 0.10f), new Vector2(0.95f, 0.50f));
+        GameObject hpObj = CreateUIObject("HPText", heroObj.transform, new Vector2(0.38f, 0.08f), new Vector2(0.98f, 0.48f));
         TextMeshProUGUI hpTmp = hpObj.AddComponent<TextMeshProUGUI>();
-        hpTmp.fontSize = 14;
-        hpTmp.color = new Color(0.4f, 0.95f, 0.4f);
+        hpTmp.fontSize = 13;
+        hpTmp.color = Color.white;
         hpTmp.raycastTarget = false;
 
         return new HeroFieldDisplay {
             hero = hero,
             container = heroObj,
             cardImage = bg,
+            avatarImage = avatarImg,
             nameText = nameTmp,
             hpText = hpTmp
         };
     }
 
-    private HeroBottomCardDisplay CreateHeroBottomCard(HeroInstance hero, int index)
+    private HeroTabDisplay CreateHeroTab(HeroInstance hero, int index)
     {
-        GameObject cardObj = CreateUIObject($"BottomCard_{hero.heroName}", heroCardsRowPanel.transform, Vector2.zero, Vector2.one);
-        Image bg = cardObj.AddComponent<Image>();
-        bg.color = new Color(0.13f, 0.16f, 0.22f, 0.95f);
+        GameObject tabObj = CreateUIObject($"HeroTab_{hero.heroName}", heroTabsContainer, Vector2.zero, Vector2.one);
+        Image bg = tabObj.AddComponent<Image>();
+        bg.color = new Color(0.16f, 0.20f, 0.28f, 0.95f);
 
-        Button btn = cardObj.AddComponent<Button>();
+        Button btn = tabObj.AddComponent<Button>();
         btn.targetGraphic = bg;
-        ConfigureButtonColors(btn, new Color(0.13f, 0.16f, 0.22f, 0.95f), new Color(0.24f, 0.32f, 0.48f));
+        ConfigureButtonColors(btn, bg.color, new Color(0.28f, 0.38f, 0.55f));
         btn.onClick.AddListener(() => {
             if (BattleManager.Instance.currentState == BattleState.HeroTurn)
             {
@@ -535,36 +637,20 @@ public class BattleHUD : MonoBehaviour
             }
         });
 
-        // Topo: Nome, Estrelas e Classe
-        GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.05f, 0.68f), new Vector2(0.95f, 0.96f));
-        TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
-        titleTmp.text = $"<b>{hero.heroName}</b> <size=12><color=#90CAF9>[{hero.heroClass}]</color></size>";
-        titleTmp.fontSize = 15;
-        titleTmp.alignment = TextAlignmentOptions.Center;
-        titleTmp.color = Color.white;
-        titleTmp.raycastTarget = false;
+        GameObject txtObj = CreateUIObject("TabText", tabObj.transform, Vector2.zero, Vector2.one);
+        TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
+        tmp.fontSize = 14;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.color = Color.white;
+        tmp.raycastTarget = false;
 
-        // Meio: HP e MP
-        GameObject statObj = CreateUIObject("Stats", cardObj.transform, new Vector2(0.05f, 0.32f), new Vector2(0.95f, 0.68f));
-        TextMeshProUGUI statTmp = statObj.AddComponent<TextMeshProUGUI>();
-        statTmp.fontSize = 13;
-        statTmp.alignment = TextAlignmentOptions.Center;
-        statTmp.raycastTarget = false;
-
-        // Fundo: Poções e Tag de Status ([PRONTO], [AGIU], [DEFESA])
-        GameObject botObj = CreateUIObject("StatusTag", cardObj.transform, new Vector2(0.05f, 0.04f), new Vector2(0.95f, 0.32f));
-        TextMeshProUGUI botTmp = botObj.AddComponent<TextMeshProUGUI>();
-        botTmp.fontSize = 13;
-        botTmp.alignment = TextAlignmentOptions.Center;
-        botTmp.raycastTarget = false;
-
-        return new HeroBottomCardDisplay {
+        return new HeroTabDisplay {
             hero = hero,
-            container = cardObj,
-            bgImage = bg,
-            titleText = titleTmp,
-            statsText = statTmp,
-            statusBadgeText = botTmp
+            tabObj = tabObj,
+            tabBg = bg,
+            tabText = tmp,
+            tabButton = btn
         };
     }
 
@@ -586,20 +672,36 @@ public class BattleHUD : MonoBehaviour
             }
         });
 
+        // Avatar do Monstro / Chefe
+        GameObject avatarObj = CreateUIObject("Avatar", enemyObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.36f, 0.94f));
+        Image avatarImg = avatarObj.AddComponent<Image>();
+        avatarImg.preserveAspect = true;
+        avatarImg.raycastTarget = false;
+        Sprite spr = GetEnemySprite(enemy);
+        if (spr != null)
+        {
+            avatarImg.sprite = spr;
+            avatarImg.color = Color.white;
+        }
+        else
+        {
+            avatarImg.color = Color.clear;
+        }
+
         // Nome do Inimigo
-        GameObject nameObj = CreateUIObject("Name", enemyObj.transform, new Vector2(0.05f, 0.50f), new Vector2(0.95f, 0.95f));
+        GameObject nameObj = CreateUIObject("Name", enemyObj.transform, new Vector2(0.38f, 0.50f), new Vector2(0.98f, 0.95f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
-        nameTmp.text = isBoss ? $"<color=#FF5555>[CHEFE]</color> <b>{enemy.enemyName}</b>" : $"<color=#FFAAAA>[MONSTRO]</color> <b>{enemy.enemyName}</b>";
-        nameTmp.fontSize = isBoss ? 18 : 15;
+        nameTmp.text = isBoss ? $"[CHEFE] <b>{enemy.enemyName}</b>" : $"<b>{enemy.enemyName}</b>";
+        nameTmp.fontSize = isBoss ? 16 : 14;
         nameTmp.alignment = TextAlignmentOptions.Left;
         nameTmp.color = Color.white;
         nameTmp.raycastTarget = false;
 
         // Barra de Vida
-        GameObject hpObj = CreateUIObject("HPText", enemyObj.transform, new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.50f));
+        GameObject hpObj = CreateUIObject("HPText", enemyObj.transform, new Vector2(0.38f, 0.08f), new Vector2(0.98f, 0.48f));
         TextMeshProUGUI hpTmp = hpObj.AddComponent<TextMeshProUGUI>();
-        hpTmp.fontSize = isBoss ? 16 : 14;
-        hpTmp.color = new Color(1f, 0.5f, 0.5f);
+        hpTmp.fontSize = isBoss ? 15 : 13;
+        hpTmp.color = Color.white;
         hpTmp.raycastTarget = false;
 
         return new EnemyFieldDisplay {
@@ -607,6 +709,7 @@ public class BattleHUD : MonoBehaviour
             index = index,
             container = enemyObj,
             cardImage = bg,
+            avatarImage = avatarImg,
             nameText = nameTmp,
             hpText = hpTmp
         };
@@ -617,36 +720,49 @@ public class BattleHUD : MonoBehaviour
     /// </summary>
     public void UpdateAllStats()
     {
-        // 1. Heróis no Campo e Cartões Inferiores
+        // 1. Heróis no Campo e Abas Superiores
         for (int i = 0; i < heroFieldDisplays.Count; i++)
         {
             var hfd = heroFieldDisplays[i];
-            var hbcd = heroBottomCardDisplays[i];
             HeroInstance h = hfd.hero;
 
+            hfd.hpText.color = Color.white;
             if (h.IsAlive)
             {
                 hfd.hpText.text = $"HP: {h.currentHP}/{h.GetMaxHP()} | MP: {h.currentMP}/{h.GetMaxMP()}";
-                hbcd.statsText.text = $"<color=#66FF66>HP: {h.currentHP}/{h.GetMaxHP()}</color> | <color=#66CCFF>MP: {h.currentMP}/{h.GetMaxMP()}</color>";
-
-                string stateTag;
-                if (BattleManager.Instance.IsHeroDefending(h))
-                    stateTag = "<color=#80D8FF>[DEFESA]</color>";
-                else if (h.hasActedThisRound)
-                    stateTag = "<color=#9E9E9E>[AGIU]</color>";
-                else
-                    stateTag = "<color=#69F0AE>[PRONTO]</color>";
-
-                hbcd.statusBadgeText.text = $"Poções: {h.healingPotions}/6  {stateTag}";
+                if (hfd.avatarImage != null) hfd.avatarImage.color = Color.white;
             }
             else
             {
-                hfd.hpText.text = "<color=red>[CAÍDO]</color>";
+                hfd.hpText.text = "[CAÍDO]";
                 hfd.cardImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                if (hfd.avatarImage != null) hfd.avatarImage.color = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+            }
+        }
 
-                hbcd.statsText.text = "<color=red>[CAÍDO EM COMBATE]</color>";
-                hbcd.statusBadgeText.text = "Poções: 0/6";
-                hbcd.bgImage.color = new Color(0.18f, 0.18f, 0.18f, 0.5f);
+        for (int i = 0; i < heroTabDisplays.Count; i++)
+        {
+            var htd = heroTabDisplays[i];
+            HeroInstance h = htd.hero;
+
+            htd.tabText.color = Color.white;
+            string shortName = h.heroName.Split(',')[0].Trim();
+            if (h.IsAlive)
+            {
+                string tag;
+                if (BattleManager.Instance.IsHeroDefending(h))
+                    tag = "[DEF]";
+                else if (h.hasActedThisRound)
+                    tag = "[AGIU]";
+                else
+                    tag = "[OK]";
+
+                htd.tabText.text = $"<b>{shortName}</b> [{h.heroClass}] {tag}";
+            }
+            else
+            {
+                htd.tabText.text = $"<b>{shortName}</b> [CAÍDO]";
+                htd.tabBg.color = new Color(0.2f, 0.15f, 0.15f, 0.5f);
             }
         }
 
@@ -656,104 +772,222 @@ public class BattleHUD : MonoBehaviour
             var efd = enemyFieldDisplays[i];
             EnemyInstance e = efd.enemy;
 
+            efd.hpText.color = Color.white;
             if (e.IsAlive)
             {
                 efd.hpText.text = $"HP: {e.currentHP}/{e.maxHP}";
+                if (efd.avatarImage != null) efd.avatarImage.color = Color.white;
             }
             else
             {
-                efd.hpText.text = "<color=#888888>[DERROTADO]</color>";
+                efd.hpText.text = "[DERROTADO]";
                 efd.cardImage.color = new Color(0.15f, 0.15f, 0.15f, 0.4f);
+                if (efd.avatarImage != null) efd.avatarImage.color = new Color(0.25f, 0.25f, 0.25f, 0.3f);
             }
         }
+
+        // 3. Atualiza os dados detalhados do herói atualmente selecionado
+        RefreshHeroStatusPanel(BattleManager.Instance != null ? BattleManager.Instance.selectedHero : null);
     }
 
     /// <summary>
-    /// Configura a UI para o herói selecionado na Fase do Jogador.
+    /// Atualiza as 3 colunas de status (Vitais, Atributos Primários e Estatísticas de Combate) do herói ativo com texto branco.
     /// </summary>
-    public void SetHeroTurnUI(HeroInstance hero)
+    public void RefreshHeroStatusPanel(HeroInstance hero)
     {
-        UpdateAllStats();
+        if (statusHeroTitleText == null) return;
 
-        if (turnBannerText != null)
-            turnBannerText.text = $"=== FASE DO JOGADOR (RODADA {BattleManager.Instance.currentTurnRound}) ===";
+        statusHeroTitleText.color = Color.white;
+        statusVitalsText.color = Color.white;
+        statusAttributesText.color = Color.white;
+        statusCombatStatsText.color = Color.white;
+
+        if (statusHeroAvatarImage != null)
+        {
+            if (hero != null)
+            {
+                Sprite spr = GetHeroSprite(hero);
+                if (spr != null)
+                {
+                    statusHeroAvatarImage.sprite = spr;
+                    statusHeroAvatarImage.color = hero.IsAlive ? Color.white : new Color(0.35f, 0.35f, 0.35f, 0.6f);
+                }
+                else
+                {
+                    statusHeroAvatarImage.color = Color.clear;
+                }
+            }
+            else
+            {
+                statusHeroAvatarImage.color = Color.clear;
+            }
+        }
 
         if (hero == null)
         {
-            commandHeaderTitle.text = "SELECIONE UM HERÓI";
-            attackBtn.interactable = false;
-            potionBtn.interactable = false;
-            defendBtn.interactable = false;
+            statusHeroTitleText.text = "<b>Nenhum aventureiro selecionado.</b>";
+            statusVitalsText.text = "Clique em um herói no campo de batalha ou nas abas acima.";
+            statusAttributesText.text = "";
+            statusCombatStatsText.text = "";
             return;
         }
 
-        bool canAct = hero.IsAlive && !hero.hasActedThisRound;
-
-        commandHeaderTitle.text = $"HERÓI: {hero.heroName.ToUpper()}";
-        if (potionBtnText != null)
-            potionBtnText.text = $"POÇÃO ({hero.healingPotions}/6)";
-
-        if (combatLogText != null)
+        if (hero.availableSkills == null || hero.availableSkills.Count == 0)
         {
-            combatLogText.text = canAct 
-                ? $"Vez de <b>{hero.heroName}</b>! Escolha uma ação: [Atacar], [Poção], [Defender] ou selecione outro herói."
-                : $"<b>{hero.heroName}</b> já agiu nesta rodada. Selecione outro aventureiro!";
+            hero.InitializeDefaultSkills();
         }
 
-        attackBtn.interactable = canAct;
-        potionBtn.interactable = canAct && hero.healingPotions > 0;
-        defendBtn.interactable = canAct;
-        endTurnBtn.interactable = true;
+        string starBadge = hero.isGoldStar ? $"[{hero.currentStars}* Ouro]" : $"[{hero.currentStars}*]";
+        statusHeroTitleText.text = $"{starBadge} <b>{hero.heroName}</b> (Nv. {hero.level})\nClasse: {hero.heroClass}";
 
-        CancelTargetingMode();
-
-        // Destaca visualmente o herói selecionado nos cartões e campo
-        for (int i = 0; i < heroBottomCardDisplays.Count; i++)
+        if (hero.IsAlive)
         {
-            var hbcd = heroBottomCardDisplays[i];
-            var hfd = heroFieldDisplays[i];
+            string stateTag;
+            if (BattleManager.Instance.IsHeroDefending(hero))
+                stateTag = "[EM DEFESA]";
+            else if (hero.hasActedThisRound)
+                stateTag = "[JÁ AGIU]";
+            else
+                stateTag = "[PRONTO PARA AGIR]";
 
-            if (hbcd.hero == hero)
-            {
-                hbcd.bgImage.color = new Color(0.22f, 0.40f, 0.65f, 1f); // Destaque azul brilhante
-                hfd.cardImage.color = new Color(0.25f, 0.45f, 0.70f, 1f);
-            }
-            else if (hbcd.hero.IsAlive)
-            {
-                hbcd.bgImage.color = hbcd.hero.hasActedThisRound 
-                    ? new Color(0.10f, 0.12f, 0.16f, 0.85f) 
-                    : new Color(0.14f, 0.17f, 0.24f, 0.95f);
+            statusVitalsText.text =
+                $"<b>HP:</b> {hero.currentHP} / {hero.GetMaxHP()}\n" +
+                $"<b>MP:</b> {hero.currentMP} / {hero.GetMaxMP()}\n" +
+                $"<b>Poções de Cura:</b> {hero.healingPotions}/6\n" +
+                $"<b>Estado:</b> {stateTag}";
 
-                hfd.cardImage.color = hbcd.hero.hasActedThisRound
-                    ? new Color(0.10f, 0.12f, 0.16f, 0.85f)
-                    : new Color(0.14f, 0.18f, 0.26f, 0.95f);
-            }
+            HeroAttributes attrs = hero.GetCurrentAttributes();
+            string freePointsStr = hero.unallocatedAttributePoints > 0
+                ? $"\n<b>Pontos Livres:</b> +{hero.unallocatedAttributePoints}"
+                : "";
+
+            statusAttributesText.text =
+                "<b>ATRIBUTOS PRIMÁRIOS</b>\n" +
+                $"FORÇA (STR): <b>{attrs.strength}</b>\n" +
+                $"DESTREZA (DEX): <b>{attrs.dexterity}</b>\n" +
+                $"INTELIGÊNCIA (INT): <b>{attrs.intelligence}</b>\n" +
+                $"VITALIDADE (VIT): <b>{attrs.vitality}</b>" +
+                freePointsStr;
+
+            statusCombatStatsText.text =
+                "<b>ESTATÍSTICAS DE COMBATE</b>\n" +
+                $"ATQ FÍSICO: <b>{hero.GetPhysicalAttack()}</b>\n" +
+                $"DEF FÍSICA: <b>{hero.GetPhysicalDefense()}</b>\n" +
+                $"ATQ MÁGICO: <b>{hero.GetMagicAttack()}</b>\n" +
+                $"VELOCIDADE: <b>{hero.GetSpeed()}</b>\n" +
+                $"TAXA CRÍTICA: <b>{hero.GetCritRate():F1}%</b>";
+        }
+        else
+        {
+            statusVitalsText.text = "<b>[CAÍDO EM COMBATE]</b>\nEste herói foi nocauteado e não pode agir.";
+            statusAttributesText.text = "";
+            statusCombatStatsText.text = "";
         }
     }
 
     /// <summary>
-    /// Configura a UI para a Fase dos Monstros.
+    /// Exibe a visualização de status do herói e oculta a lista de habilidades.
     /// </summary>
-    public void SetEnemyTurnUI()
+    public void ShowHeroStatusView()
     {
-        UpdateAllStats();
-
-        if (turnBannerText != null)
-            turnBannerText.text = "=== FASE DOS MONSTROS ===";
-
-        commandHeaderTitle.text = "TURNO INIMIGO";
-        attackBtn.interactable = false;
-        potionBtn.interactable = false;
-        defendBtn.interactable = false;
-        endTurnBtn.interactable = false;
-        CancelTargetingMode();
+        if (heroStatusView != null) heroStatusView.SetActive(true);
+        if (heroAttacksView != null) heroAttacksView.SetActive(false);
+        RefreshHeroStatusPanel(BattleManager.Instance != null ? BattleManager.Instance.selectedHero : null);
     }
 
-    #region Comandos do Jogador
+    /// <summary>
+    /// Exibe a visualização de ataques e habilidades disponíveis do herói ativo.
+    /// </summary>
+    public void ShowHeroAttacksView()
+    {
+        HeroInstance hero = BattleManager.Instance != null ? BattleManager.Instance.selectedHero : null;
+        if (hero == null || !hero.IsAlive || hero.hasActedThisRound) return;
 
-    public void OnClickAttack()
+        if (hero.availableSkills == null || hero.availableSkills.Count == 0)
+        {
+            hero.InitializeDefaultSkills();
+        }
+
+        if (heroStatusView != null) heroStatusView.SetActive(false);
+        if (heroAttacksView != null) heroAttacksView.SetActive(true);
+
+        if (attacksViewTitle != null)
+        {
+            attacksViewTitle.color = Color.white;
+            attacksViewTitle.text = $"HABILIDADES & ATAQUES DE <b>{hero.heroName.ToUpper()}</b> (MP: {hero.currentMP}/{hero.GetMaxMP()}):";
+        }
+
+        // Limpa cartões de habilidades anteriores
+        foreach (Transform child in skillCardsContainer) Destroy(child.gameObject);
+
+        // Cria um cartão para cada habilidade do herói
+        for (int i = 0; i < hero.availableSkills.Count; i++)
+        {
+            HeroSkill skill = hero.availableSkills[i];
+            CreateSkillCard(hero, skill);
+        }
+    }
+
+    private void CreateSkillCard(HeroInstance hero, HeroSkill skill)
+    {
+        GameObject cardObj = CreateUIObject($"SkillCard_{skill.skillName}", skillCardsContainer, Vector2.zero, Vector2.one);
+        Image bg = cardObj.AddComponent<Image>();
+
+        bool hasMp = hero.currentMP >= skill.mpCost;
+        Color normalColor = hasMp 
+            ? (skill.isMagic ? new Color(0.18f, 0.28f, 0.48f, 0.98f) : new Color(0.35f, 0.20f, 0.22f, 0.98f))
+            : new Color(0.20f, 0.20f, 0.22f, 0.80f);
+
+        bg.color = normalColor;
+
+        Button btn = cardObj.AddComponent<Button>();
+        btn.targetGraphic = bg;
+        ConfigureButtonColors(btn, normalColor, normalColor * 1.3f);
+        btn.interactable = hasMp;
+
+        btn.onClick.AddListener(() => {
+            OnSelectSkillToExecute(skill);
+        });
+
+        // Título / Nome da Habilidade
+        GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.04f, 0.65f), new Vector2(0.96f, 0.96f));
+        TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
+        titleTmp.fontSize = 15;
+        titleTmp.fontStyle = FontStyles.Bold;
+        titleTmp.alignment = TextAlignmentOptions.Center;
+        titleTmp.color = Color.white;
+        titleTmp.text = $"<b>{skill.skillName}</b>";
+        titleTmp.raycastTarget = false;
+
+        // Custo e Tipo
+        GameObject costObj = CreateUIObject("Cost", cardObj.transform, new Vector2(0.04f, 0.38f), new Vector2(0.96f, 0.65f));
+        TextMeshProUGUI costTmp = costObj.AddComponent<TextMeshProUGUI>();
+        costTmp.fontSize = 13;
+        costTmp.alignment = TextAlignmentOptions.Center;
+        costTmp.color = Color.white;
+        costTmp.raycastTarget = false;
+
+        string costStr = skill.mpCost > 0 ? $"Custo: {skill.mpCost} MP" : "Sem custo (0 MP)";
+        string typeStr = skill.isMagic ? "[Mágico]" : "[Físico]";
+        string mpWarning = hasMp ? "" : " [SEM MP]";
+        costTmp.text = $"{costStr} | {typeStr}{mpWarning}";
+
+        // Descrição e Dano
+        GameObject descObj = CreateUIObject("Desc", cardObj.transform, new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.38f));
+        TextMeshProUGUI descTmp = descObj.AddComponent<TextMeshProUGUI>();
+        descTmp.fontSize = 12;
+        descTmp.alignment = TextAlignmentOptions.Center;
+        descTmp.color = Color.white;
+        descTmp.raycastTarget = false;
+
+        string critBonusStr = skill.critBonus > 0 ? $" (+{skill.critBonus}% Crítico)" : "";
+        descTmp.text = $"Dano: {Mathf.RoundToInt(skill.damageMultiplier * 100)}%{critBonusStr}\n<size=11>{skill.description}</size>";
+    }
+
+    private void OnSelectSkillToExecute(HeroSkill skill)
     {
         if (BattleManager.Instance.selectedHero == null) return;
+        BattleManager.Instance.SelectSkillToCast(skill);
 
         // Se só tiver 1 monstro vivo, ataca direto sem necessitar de segundo clique!
         int firstAlive = -1;
@@ -773,24 +1007,151 @@ public class BattleHUD : MonoBehaviour
             return;
         }
 
-        // Ativa o modo de seleção de alvo
-        EnterTargetingMode();
+        // Ativa o modo de seleção de alvo no campo
+        EnterTargetingMode(skill);
     }
 
-    public void EnterTargetingMode()
+    /// <summary>
+    /// Configura a UI para o herói selecionado na Fase do Jogador.
+    /// </summary>
+    public void SetHeroTurnUI(HeroInstance hero)
+    {
+        UpdateAllStats();
+
+        if (turnBannerText != null)
+        {
+            turnBannerText.color = Color.white;
+            turnBannerText.text = $"=== FASE DO JOGADOR (RODADA {BattleManager.Instance.currentTurnRound}) ===";
+        }
+
+        ShowHeroStatusView();
+
+        if (hero == null)
+        {
+            commandHeaderTitle.color = Color.white;
+            commandHeaderTitle.text = "SELECIONE UM HERÓI";
+            attackBtn.interactable = false;
+            potionBtn.interactable = false;
+            defendBtn.interactable = false;
+            return;
+        }
+
+        bool canAct = hero.IsAlive && !hero.hasActedThisRound;
+
+        commandHeaderTitle.color = Color.white;
+        commandHeaderTitle.text = $"HERÓI: {hero.heroName.ToUpper()}";
+        if (potionBtnText != null)
+        {
+            potionBtnText.color = Color.white;
+            potionBtnText.text = $"POÇÃO ({hero.healingPotions}/6)";
+        }
+
+        if (combatLogText != null)
+        {
+            combatLogText.color = Color.white;
+            combatLogText.text = canAct 
+                ? $"Vez de <b>{hero.heroName}</b>! Escolha uma ação: [Atacar], [Poção], [Defender] ou selecione outro herói."
+                : $"<b>{hero.heroName}</b> já agiu nesta rodada. Selecione outro aventureiro!";
+        }
+
+        attackBtn.interactable = canAct;
+        potionBtn.interactable = canAct && hero.healingPotions > 0;
+        defendBtn.interactable = canAct;
+        endTurnBtn.interactable = true;
+
+        CancelTargetingMode();
+
+        // Destaca visualmente o herói selecionado na aba e no campo
+        for (int i = 0; i < heroTabDisplays.Count; i++)
+        {
+            var htd = heroTabDisplays[i];
+            var hfd = (i < heroFieldDisplays.Count) ? heroFieldDisplays[i] : null;
+
+            if (htd.hero == hero)
+            {
+                htd.tabBg.color = new Color(0.25f, 0.48f, 0.78f, 1f); // Destaque azul brilhante
+                if (hfd != null) hfd.cardImage.color = new Color(0.25f, 0.45f, 0.70f, 1f);
+            }
+            else if (htd.hero.IsAlive)
+            {
+                htd.tabBg.color = htd.hero.hasActedThisRound 
+                    ? new Color(0.12f, 0.14f, 0.18f, 0.85f) 
+                    : new Color(0.16f, 0.20f, 0.28f, 0.95f);
+
+                if (hfd != null)
+                {
+                    hfd.cardImage.color = htd.hero.hasActedThisRound
+                        ? new Color(0.10f, 0.12f, 0.16f, 0.85f)
+                        : new Color(0.14f, 0.18f, 0.26f, 0.95f);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Configura a UI para a Fase dos Monstros.
+    /// </summary>
+    public void SetEnemyTurnUI()
+    {
+        UpdateAllStats();
+        ShowHeroStatusView();
+
+        if (turnBannerText != null)
+        {
+            turnBannerText.color = Color.white;
+            turnBannerText.text = "=== FASE DOS MONSTROS ===";
+        }
+
+        commandHeaderTitle.color = Color.white;
+        commandHeaderTitle.text = "TURNO INIMIGO";
+        attackBtn.interactable = false;
+        potionBtn.interactable = false;
+        defendBtn.interactable = false;
+        endTurnBtn.interactable = false;
+        CancelTargetingMode();
+    }
+
+    #region Comandos do Jogador
+
+    public void OnClickAttack()
+    {
+        if (BattleManager.Instance.selectedHero == null) return;
+        if (!BattleManager.Instance.selectedHero.IsAlive || BattleManager.Instance.selectedHero.hasActedThisRound) return;
+
+        // Abre a aba com todos os ataques e habilidades daquele aventureiro
+        ShowHeroAttacksView();
+
+        if (combatLogText != null)
+        {
+            combatLogText.color = Color.white;
+            combatLogText.text = $"Escolha qual habilidade ou ataque <b>{BattleManager.Instance.selectedHero.heroName}</b> deve utilizar:";
+        }
+    }
+
+    public void EnterTargetingMode(HeroSkill skill = null)
     {
         isTargetingMode = true;
         if (targetModePanel != null) targetModePanel.SetActive(true);
 
+        string skillName = skill != null ? skill.skillName : (BattleManager.Instance.pendingSkill != null ? BattleManager.Instance.pendingSkill.skillName : "Ataque Básico");
+        if (targetModePromptText != null)
+        {
+            targetModePromptText.color = Color.white;
+            targetModePromptText.text = $"[{skillName.ToUpper()}] SELECIONADO!\nCLIQUE NO MONSTRO ALVO:";
+        }
+
         if (combatLogText != null)
-            combatLogText.text = "<b>Escolha qual criatura atacar:</b> Clique no monstro no campo de batalha!";
+        {
+            combatLogText.color = Color.white;
+            combatLogText.text = $"<b>{skillName}:</b> Clique no monstro que deseja atingir no campo de batalha!";
+        }
 
         // Destaca os monstros vivos no campo com cor pulsante/vermelha
         for (int i = 0; i < enemyFieldDisplays.Count; i++)
         {
             if (enemyFieldDisplays[i].enemy.IsAlive)
             {
-                enemyFieldDisplays[i].cardImage.color = new Color(0.70f, 0.20f, 0.25f, 1f);
+                enemyFieldDisplays[i].cardImage.color = new Color(0.75f, 0.20f, 0.25f, 1f);
             }
         }
     }
@@ -815,24 +1176,28 @@ public class BattleHUD : MonoBehaviour
     public void ExecuteAttackOnTarget(int enemyIndex)
     {
         CancelTargetingMode();
-        BattleManager.Instance.PlayerAttack(enemyIndex);
+        BattleManager.Instance.PlayerExecuteSkillOn(enemyIndex);
+        ShowHeroStatusView();
     }
 
     public void OnClickUsePotion()
     {
         CancelTargetingMode();
+        ShowHeroStatusView();
         BattleManager.Instance.PlayerUsePotion();
     }
 
     public void OnClickDefend()
     {
         CancelTargetingMode();
+        ShowHeroStatusView();
         BattleManager.Instance.PlayerDefend();
     }
 
     public void OnClickEndTurn()
     {
         CancelTargetingMode();
+        ShowHeroStatusView();
         BattleManager.Instance.EndPlayerPhaseManually();
     }
 
@@ -843,6 +1208,7 @@ public class BattleHUD : MonoBehaviour
     public void ShowVictory(int xp, int gold, List<ItemData> drops)
     {
         UpdateAllStats();
+        ShowHeroStatusView();
         if (victoryPanel != null) victoryPanel.SetActive(true);
 
         string dropsText = "";
@@ -866,11 +1232,12 @@ public class BattleHUD : MonoBehaviour
 
         if (totalUnallocated > 0)
         {
-            levelUpNotice = $"\n\n<color=#FFD700><b>[LEVEL UP NO GRUPO!]</b></color>\nVocê tem {totalUnallocated} pontos de atributo para distribuir no menu [ADMINISTRAR GRUPO]!";
+            levelUpNotice = $"\n\n<b>[LEVEL UP NO GRUPO!]</b>\nVocê tem {totalUnallocated} pontos de atributo para distribuir no menu [ADMINISTRAR GRUPO]!";
         }
 
         if (victorySummaryText != null)
         {
+            victorySummaryText.color = Color.white;
             victorySummaryText.text = $"<b>Recompensas da Câmara:</b>\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}{levelUpNotice}";
         }
     }
@@ -878,6 +1245,7 @@ public class BattleHUD : MonoBehaviour
     public void ShowDefeat()
     {
         UpdateAllStats();
+        ShowHeroStatusView();
         if (defeatPanel != null) defeatPanel.SetActive(true);
     }
 
@@ -912,7 +1280,7 @@ public class BattleHUD : MonoBehaviour
             // Nome e Classe
             GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.05f, 0.86f), new Vector2(0.95f, 0.98f));
             TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
-            titleTmp.text = $"<b>{hero.heroName}</b> (Nv. {hero.level})\n<color=#90CAF9>[{hero.heroClass}]</color>";
+            titleTmp.text = $"<b>{hero.heroName}</b> (Nv. {hero.level})\n[{hero.heroClass}]";
             titleTmp.fontSize = 16;
             titleTmp.alignment = TextAlignmentOptions.Center;
             titleTmp.color = Color.white;
@@ -921,10 +1289,11 @@ public class BattleHUD : MonoBehaviour
             GameObject ptsObj = CreateUIObject("PointsText", cardObj.transform, new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.84f));
             TextMeshProUGUI ptsTmp = ptsObj.AddComponent<TextMeshProUGUI>();
             ptsTmp.text = hero.unallocatedAttributePoints > 0 
-                ? $"<color=#FFD700><b>Pontos Livres: {hero.unallocatedAttributePoints}</b></color>"
-                : "<color=#888888>Sem pontos livres</color>";
+                ? $"<b>Pontos Livres: {hero.unallocatedAttributePoints}</b>"
+                : "Sem pontos livres";
             ptsTmp.fontSize = 14;
             ptsTmp.alignment = TextAlignmentOptions.Center;
+            ptsTmp.color = Color.white;
 
             // Linhas de Atributos com botões [+]
             HeroAttributes attrs = hero.GetCurrentAttributes();
@@ -1017,14 +1386,14 @@ public class BattleHUD : MonoBehaviour
             descTmp.text = room.description;
             descTmp.fontSize = 14;
             descTmp.alignment = TextAlignmentOptions.Center;
-            descTmp.color = new Color(0.9f, 0.9f, 0.9f);
+            descTmp.color = Color.white;
             descTmp.raycastTarget = false;
         }
     }
 
     public void OnClickRetreatFromDungeon()
     {
-        Debug.Log("🏰 A Guilda recuou em segurança com todos os tesouros e experiência!");
+        Debug.Log("A Guilda recuou em segurança com todos os tesouros e experiência!");
         if (victoryPanel != null) victoryPanel.SetActive(false);
         if (battleRootPanel != null) battleRootPanel.SetActive(false);
     }
@@ -1058,7 +1427,7 @@ public class BattleHUD : MonoBehaviour
         GameObject txtObj = CreateUIObject("Label", btnObj.transform, Vector2.zero, Vector2.one);
         TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = 16;
+        tmp.fontSize = 15;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
@@ -1078,6 +1447,31 @@ public class BattleHUD : MonoBehaviour
         btn.colors = cb;
     }
 
+    public static Sprite GetHeroSprite(HeroInstance hero)
+    {
+        if (hero == null) return null;
+        if (hero.heroData != null && hero.heroData.battleSprite != null)
+            return hero.heroData.battleSprite;
+        return HeroGenerator.GetClassSprite(hero.heroClass);
+    }
+
+    public static Sprite GetEnemySprite(EnemyInstance enemy)
+    {
+        if (enemy != null && enemy.data != null && enemy.data.battleSprite != null)
+            return enemy.data.battleSprite;
+
+        string eName = enemy != null && !string.IsNullOrEmpty(enemy.enemyName) ? enemy.enemyName.ToLower() : "";
+        string spriteName = "esqueleto";
+        if (eName.Contains("esqueleto")) spriteName = "esqueleto";
+        else if (eName.Contains("goblin")) spriteName = "goblin_lanceiro";
+        else if (eName.Contains("necromante") || eName.Contains("guardiao") || eName.Contains("guardião") || (enemy != null && enemy.data != null && enemy.data.isBoss)) spriteName = "necromante";
+
+        Sprite loaded = Resources.Load<Sprite>($"Sprites/Enemies/{spriteName}");
+        if (loaded != null) return loaded;
+
+        return null;
+    }
+
     #endregion
 
     private class HeroFieldDisplay
@@ -1085,18 +1479,18 @@ public class BattleHUD : MonoBehaviour
         public HeroInstance hero;
         public GameObject container;
         public Image cardImage;
+        public Image avatarImage;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
     }
 
-    private class HeroBottomCardDisplay
+    private class HeroTabDisplay
     {
         public HeroInstance hero;
-        public GameObject container;
-        public Image bgImage;
-        public TextMeshProUGUI titleText;
-        public TextMeshProUGUI statsText;
-        public TextMeshProUGUI statusBadgeText;
+        public GameObject tabObj;
+        public Image tabBg;
+        public TextMeshProUGUI tabText;
+        public Button tabButton;
     }
 
     private class EnemyFieldDisplay
@@ -1105,6 +1499,7 @@ public class BattleHUD : MonoBehaviour
         public int index;
         public GameObject container;
         public Image cardImage;
+        public Image avatarImage;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
     }

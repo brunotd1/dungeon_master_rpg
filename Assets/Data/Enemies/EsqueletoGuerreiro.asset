@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Esqueleto Guerreiro
   description: Um guerreiro esquelético com escudo antigo. Resistente a golpes físicos.
   isBoss: 0
-  battleSprite: {fileID: 0}
+  battleSprite: {fileID: 1499555415084784356, guid: ce8539260150cbe43bdfac6df4260448, type: 3}
   maxHP: 50
   attack: 14
   defense: 6
@@ -24,3 +24,4 @@ MonoBehaviour:
   goldReward: 25
   possibleDrop: {fileID: 0}
   dropChance: 0.2
+

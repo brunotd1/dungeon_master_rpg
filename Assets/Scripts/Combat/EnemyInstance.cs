@@ -23,15 +23,16 @@ public class EnemyInstance
     }
 
     /// <summary>
-    /// Aplica dano ao monstro considerando sua defesa.
+    /// Aplica dano ao monstro considerando sua defesa (física ou mágica).
     /// </summary>
-    public int TakeDamage(int rawDamage)
+    public int TakeDamage(int rawDamage, bool isMagic = false)
     {
-        int finalDamage = Mathf.Max(1, rawDamage - data.defense);
+        int effectiveDef = isMagic ? Mathf.RoundToInt(data.defense * 0.7f) : data.defense;
+        int finalDamage = Mathf.Max(1, rawDamage - effectiveDef);
         currentHP -= finalDamage;
         if (currentHP < 0) currentHP = 0;
 
-        Debug.Log($"💥 {enemyName} sofreu {finalDamage} de dano! (HP restante: {currentHP}/{maxHP})");
+        Debug.Log($"💥 {enemyName} sofreu {finalDamage} de dano {(isMagic ? "mágico" : "físico")}! (HP restante: {currentHP}/{maxHP})");
         return finalDamage;
     }
 

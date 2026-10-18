@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Guardião de Pedra (Chefe do Andar 1)
   description: O colossal guardião de pedra que vigia a entrada para os andares superiores. Golpe devastador e pele impenetrável.
   isBoss: 1
-  battleSprite: {fileID: 0}
+  battleSprite: {fileID: 1047670342222087150, guid: f83c972cac2bb2942ae163f380e355fb, type: 3}
   maxHP: 180
   attack: 22
   defense: 10
@@ -24,3 +24,4 @@ MonoBehaviour:
   goldReward: 200
   possibleDrop: {fileID: 0}
   dropChance: 0.8
+

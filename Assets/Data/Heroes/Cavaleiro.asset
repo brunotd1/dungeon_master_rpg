@@ -17,8 +17,8 @@ MonoBehaviour:
   heroClass: 0
   stars: 1
   isGoldStar: 0
-  portrait: {fileID: 0}
-  battleSprite: {fileID: 0}
+  portrait: {fileID: 3595712252220336186, guid: 9928d9f7cb447f740852d68c1f6f98c7, type: 3}
+  battleSprite: {fileID: 3595712252220336186, guid: 9928d9f7cb447f740852d68c1f6f98c7, type: 3}
   baseAttributes:
     strength: 12
     dexterity: 10
@@ -29,3 +29,4 @@ MonoBehaviour:
     dexterity: 2
     intelligence: 1
     vitality: 3
+

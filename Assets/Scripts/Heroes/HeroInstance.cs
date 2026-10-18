@@ -78,6 +78,46 @@ public class HeroInstance
 
         currentHP = GetMaxHP();
         currentMP = GetMaxMP();
+
+        InitializeDefaultSkills();
+    }
+
+    [Header("Habilidades e Ataques do Herói")]
+    public System.Collections.Generic.List<HeroSkill> availableSkills = new System.Collections.Generic.List<HeroSkill>();
+
+    /// <summary>
+    /// Inicializa os ataques básicos e as habilidades iniciais da classe do aventureiro.
+    /// </summary>
+    public void InitializeDefaultSkills()
+    {
+        availableSkills.Clear();
+
+        // 1. Ataque Normal (Presente em todos os heróis, 0 MP)
+        availableSkills.Add(new HeroSkill("Ataque Básico", "Golpe físico padrão utilizando a arma equipada.", 0, 1.0f, false, 0f));
+
+        // 2. Habilidades específicas da Classe (Ajustadas dinamicamente)
+        switch (heroClass)
+        {
+            case HeroClassType.Knight:
+                availableSkills.Add(new HeroSkill("Golpe Pesado", "Concentra força na lâmina desferindo um ataque com 160% de dano físico.", 10, 1.6f, false, 5f));
+                availableSkills.Add(new HeroSkill("Investida com Escudo", "Avança com o escudo, causando 130% de dano com alta chance crítica.", 14, 1.3f, false, 20f));
+                break;
+
+            case HeroClassType.HeavyKnight:
+                availableSkills.Add(new HeroSkill("Pancada de Ferro", "Impacto esmagador aproveitando o peso da armadura (150% de dano físico).", 10, 1.5f, false, 0f));
+                availableSkills.Add(new HeroSkill("Fenda Sísmica", "Golpe brutal no solo causando 190% de impacto físico na criatura.", 16, 1.9f, false, 5f));
+                break;
+
+            case HeroClassType.Mage:
+                availableSkills.Add(new HeroSkill("Bola de Fogo", "Esfera incandescente causando 175% de dano mágico baseado na Inteligência.", 12, 1.75f, true, 5f));
+                availableSkills.Add(new HeroSkill("Descarga Elétrica", "Raio arcano que atravessa o monstro causando 220% de dano mágico.", 18, 2.2f, true, 10f));
+                break;
+
+            case HeroClassType.Rogue:
+                availableSkills.Add(new HeroSkill("Ataque Furtivo", "Golpe certeiro em pontos fracos com 150% de dano e +35% de chance crítica.", 10, 1.5f, false, 35f));
+                availableSkills.Add(new HeroSkill("Lâmina Penetrante", "Perfuração rápida causando 200% de dano físico crítico.", 16, 2.0f, false, 15f));
+                break;
+        }
     }
 
     /// <summary>

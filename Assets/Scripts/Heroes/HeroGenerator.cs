@@ -41,6 +41,8 @@ public static class HeroGenerator
         // 5. Rola atributos base com variação aleatória de acordo com a classe
         generatedData.baseAttributes = RollClassAttributes(randomClass, isGold);
         generatedData.growthPerLevel = GetClassGrowth(randomClass);
+        generatedData.battleSprite = GetClassSprite(randomClass);
+        generatedData.portrait = generatedData.battleSprite;
 
         HeroInstance instance = new HeroInstance(generatedData, startingLevel: 1);
 
@@ -48,6 +50,29 @@ public static class HeroGenerator
         Debug.Log($"📜 [CONVOCAÇÃO DA GUILDA] Novo Herói: {instance.heroName} | {randomClass} | {starBadge} | FOR: {generatedData.baseAttributes.strength} DES: {generatedData.baseAttributes.dexterity} INT: {generatedData.baseAttributes.intelligence} VIT: {generatedData.baseAttributes.vitality}");
 
         return instance;
+    }
+
+    public static Sprite GetClassSprite(HeroClassType heroClass)
+    {
+        string spriteName = "";
+        switch (heroClass)
+        {
+            case HeroClassType.Knight: spriteName = "cavaleiro"; break;
+            case HeroClassType.HeavyKnight: spriteName = "cavaleiro_pesado"; break;
+            case HeroClassType.Mage: spriteName = "mago"; break;
+            case HeroClassType.Rogue: spriteName = "ladino"; break;
+        }
+
+        Sprite loaded = Resources.Load<Sprite>($"Sprites/Heroes/{spriteName}");
+        if (loaded != null) return loaded;
+
+        var allHeroData = Resources.FindObjectsOfTypeAll<HeroData>();
+        foreach (var hd in allHeroData)
+        {
+            if (hd.heroClass == heroClass && hd.battleSprite != null)
+                return hd.battleSprite;
+        }
+        return null;
     }
 
     private static HeroAttributes RollClassAttributes(HeroClassType heroClass, bool isGoldStar)

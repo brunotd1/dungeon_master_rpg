@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Goblin Lanceiro
   description: Um goblin ágil armado com uma lança enferrujada. Ataca rapidamente.
   isBoss: 0
-  battleSprite: {fileID: 0}
+  battleSprite: {fileID: 2867866093504429027, guid: 789a55cbb6cfd8a4aa197ce4e419a739, type: 3}
   maxHP: 35
   attack: 10
   defense: 2
@@ -24,3 +24,4 @@ MonoBehaviour:
   goldReward: 15
   possibleDrop: {fileID: 0}
   dropChance: 0.25
+
