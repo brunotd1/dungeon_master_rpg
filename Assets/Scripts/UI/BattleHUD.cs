@@ -101,6 +101,14 @@ public class BattleHUD : MonoBehaviour
     public GameObject defeatPanel;
     public Button restartFloorBtn;
 
+    [Header("Sprites de Animação do Cavaleiro")]
+    public Sprite knightIdle;
+    public Sprite knightWindup;
+    public Sprite knightSlash;
+    public Sprite knightHurt;
+    public Sprite knightDefeat1;
+    public Sprite knightDefeat2;
+
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
     private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
@@ -108,6 +116,7 @@ public class BattleHUD : MonoBehaviour
 
     private bool isTargetingMode = false;
     public bool IsTargetingMode => isTargetingMode;
+    private float breathTimer = 0f;
 
     void Awake()
     {
@@ -117,7 +126,24 @@ public class BattleHUD : MonoBehaviour
             return;
         }
         _instance = this;
+        LoadHeroAnimationSprites();
         EnsureEventSystem();
+    }
+
+    void Update()
+    {
+        // Animação suave e sutil de respiração nos heróis vivos
+        breathTimer += Time.deltaTime * 3.5f;
+        float breathScaleY = 1.0f + Mathf.Sin(breathTimer) * 0.025f;
+
+        for (int i = 0; i < heroFieldDisplays.Count; i++)
+        {
+            var hfd = heroFieldDisplays[i];
+            if (hfd != null && hfd.hero != null && hfd.hero.IsAlive && hfd.avatarImage != null && hfd.activeAnimRoutine == null)
+            {
+                hfd.avatarImage.rectTransform.localScale = new Vector3(1f, breathScaleY, 1f);
+            }
+        }
     }
 
     void Start()
@@ -730,13 +756,27 @@ public class BattleHUD : MonoBehaviour
             if (h.IsAlive)
             {
                 hfd.hpText.text = $"HP: {h.currentHP}/{h.GetMaxHP()} | MP: {h.currentMP}/{h.GetMaxMP()}";
-                if (hfd.avatarImage != null) hfd.avatarImage.color = Color.white;
+                if (hfd.avatarImage != null)
+                {
+                    hfd.avatarImage.color = Color.white;
+                    if (h.heroClass == HeroClassType.Knight && knightIdle != null && hfd.activeAnimRoutine == null)
+                    {
+                        hfd.avatarImage.sprite = knightIdle;
+                    }
+                }
             }
             else
             {
                 hfd.hpText.text = "[CAÍDO]";
                 hfd.cardImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
-                if (hfd.avatarImage != null) hfd.avatarImage.color = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+                if (hfd.avatarImage != null)
+                {
+                    hfd.avatarImage.color = new Color(0.7f, 0.7f, 0.7f, 0.85f);
+                    if (h.heroClass == HeroClassType.Knight && knightDefeat2 != null)
+                    {
+                        hfd.avatarImage.sprite = knightDefeat2;
+                    }
+                }
             }
         }
 
@@ -1472,6 +1512,165 @@ public class BattleHUD : MonoBehaviour
         return null;
     }
 
+    public void LoadHeroAnimationSprites()
+    {
+        if (knightIdle == null) knightIdle = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_idle");
+        if (knightIdle == null) knightIdle = Resources.Load<Sprite>("Sprites/Heroes/cavaleiro");
+
+        if (knightWindup == null) knightWindup = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_windup");
+        if (knightSlash == null) knightSlash = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_slash");
+        if (knightHurt == null) knightHurt = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_hurt");
+        if (knightDefeat1 == null) knightDefeat1 = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_defeat1");
+        if (knightDefeat2 == null) knightDefeat2 = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_defeat2");
+    }
+
+    #endregion
+
+    #region Animações de Combate (Avanço, Golpe, Impacto e Derrota)
+
+    public void PlayHeroAttackAnimation(HeroInstance hero, int targetEnemyIndex)
+    {
+        var hfd = heroFieldDisplays.Find(d => d.hero == hero);
+        if (hfd == null || hfd.avatarImage == null) return;
+
+        if (hfd.activeAnimRoutine != null) StopCoroutine(hfd.activeAnimRoutine);
+        hfd.activeAnimRoutine = StartCoroutine(HeroAttackCoroutine(hfd, targetEnemyIndex));
+    }
+
+    private IEnumerator HeroAttackCoroutine(HeroFieldDisplay hfd, int targetEnemyIndex)
+    {
+        RectTransform rt = hfd.container.GetComponent<RectTransform>();
+        Vector2 origPos = rt.anchoredPosition;
+        Sprite baseSprite = hfd.avatarImage.sprite;
+        bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+
+        // 1. Antecipação (Wind-up): ergue a espada e avança na direção dos monstros à esquerda
+        if (isKnight && knightWindup != null) hfd.avatarImage.sprite = knightWindup;
+
+        float elapsed = 0f;
+        float dashTime = 0.12f;
+        Vector2 targetPos = origPos + new Vector2(-45f, 0f);
+
+        while (elapsed < dashTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(origPos, targetPos, elapsed / dashTime);
+            yield return null;
+        }
+
+        // 2. Golpe de Corte (Slash): atinge o ápice e corta com vento
+        if (isKnight && knightSlash != null) hfd.avatarImage.sprite = knightSlash;
+
+        // Efeito de impacto no cartão do monstro
+        var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+        if (efd != null)
+        {
+            StartCoroutine(ShakeEnemyCard(efd));
+        }
+
+        yield return new WaitForSeconds(0.18f);
+
+        // 3. Retorno suave para a base e restauração do sprite Idle
+        elapsed = 0f;
+        float returnTime = 0.15f;
+        while (elapsed < returnTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(targetPos, origPos, elapsed / returnTime);
+            yield return null;
+        }
+
+        rt.anchoredPosition = origPos;
+        hfd.avatarImage.sprite = (isKnight && knightIdle != null) ? knightIdle : baseSprite;
+        hfd.activeAnimRoutine = null;
+    }
+
+    public void PlayHeroHurtAnimation(HeroInstance hero)
+    {
+        var hfd = heroFieldDisplays.Find(d => d.hero == hero);
+        if (hfd == null || hfd.avatarImage == null || !hero.IsAlive) return;
+
+        if (hfd.activeAnimRoutine != null) StopCoroutine(hfd.activeAnimRoutine);
+        hfd.activeAnimRoutine = StartCoroutine(HeroHurtCoroutine(hfd));
+    }
+
+    private IEnumerator HeroHurtCoroutine(HeroFieldDisplay hfd)
+    {
+        RectTransform rt = hfd.container.GetComponent<RectTransform>();
+        Vector2 origPos = rt.anchoredPosition;
+        Sprite baseSprite = hfd.avatarImage.sprite;
+        bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+
+        // Troca para o sprite de impacto com faíscas
+        if (isKnight && knightHurt != null) hfd.avatarImage.sprite = knightHurt;
+        hfd.cardImage.color = new Color(0.6f, 0.2f, 0.2f, 1f); // Flash de dano vermelho
+
+        // Recuo de 18px para a direita (impacto sofrido da esquerda)
+        Vector2 recoilPos = origPos + new Vector2(18f, 0f);
+        rt.anchoredPosition = recoilPos;
+
+        yield return new WaitForSeconds(0.22f);
+
+        // Retorna à posição original
+        rt.anchoredPosition = origPos;
+        hfd.cardImage.color = new Color(0.14f, 0.18f, 0.26f, 0.95f);
+        if (hfd.hero.IsAlive)
+        {
+            hfd.avatarImage.sprite = (isKnight && knightIdle != null) ? knightIdle : baseSprite;
+        }
+        hfd.activeAnimRoutine = null;
+    }
+
+    public void PlayHeroDefeatAnimation(HeroInstance hero)
+    {
+        var hfd = heroFieldDisplays.Find(d => d.hero == hero);
+        if (hfd == null || hfd.avatarImage == null) return;
+
+        if (hfd.activeAnimRoutine != null) StopCoroutine(hfd.activeAnimRoutine);
+        hfd.activeAnimRoutine = StartCoroutine(HeroDefeatCoroutine(hfd));
+    }
+
+    private IEnumerator HeroDefeatCoroutine(HeroFieldDisplay hfd)
+    {
+        bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+
+        // Estágio 1: Caindo de joelhos
+        if (isKnight && knightDefeat1 != null)
+        {
+            hfd.avatarImage.sprite = knightDefeat1;
+            yield return new WaitForSeconds(0.35f);
+        }
+
+        // Estágio 2: Desabando estendido no chão
+        if (isKnight && knightDefeat2 != null)
+        {
+            hfd.avatarImage.sprite = knightDefeat2;
+        }
+
+        hfd.cardImage.color = new Color(0.18f, 0.18f, 0.18f, 0.6f);
+        hfd.avatarImage.color = new Color(0.7f, 0.7f, 0.7f, 0.85f);
+        hfd.activeAnimRoutine = null;
+    }
+
+    private IEnumerator ShakeEnemyCard(EnemyFieldDisplay efd)
+    {
+        RectTransform rt = efd.container.GetComponent<RectTransform>();
+        Vector2 origPos = rt.anchoredPosition;
+        Color origColor = efd.cardImage.color;
+
+        // Flash de dano
+        efd.cardImage.color = new Color(0.85f, 0.25f, 0.25f, 1f);
+
+        for (int i = 0; i < 4; i++)
+        {
+            rt.anchoredPosition = origPos + new Vector2(Random.Range(-6f, 6f), Random.Range(-4f, 4f));
+            yield return new WaitForSeconds(0.035f);
+        }
+
+        rt.anchoredPosition = origPos;
+        efd.cardImage.color = origColor;
+    }
+
     #endregion
 
     private class HeroFieldDisplay
@@ -1482,6 +1681,7 @@ public class BattleHUD : MonoBehaviour
         public Image avatarImage;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
+        public Coroutine activeAnimRoutine;
     }
 
     private class HeroTabDisplay

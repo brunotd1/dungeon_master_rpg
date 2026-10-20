@@ -355,6 +355,11 @@ public class BattleManager : MonoBehaviour
         Debug.Log($"🗡️ {attacker.heroName} usou {skill.skillName} contra {target.enemyName}!");
         target.TakeDamage(attackPower, skill.isMagic);
 
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.PlayHeroAttackAnimation(attacker, targetEnemyIndex);
+        }
+
         attacker.hasActedThisRound = true;
         pendingSkill = null;
 
@@ -494,6 +499,15 @@ public class BattleManager : MonoBehaviour
 
             if (BattleHUD.Instance != null)
             {
+                if (targetHero.IsAlive)
+                {
+                    BattleHUD.Instance.PlayHeroHurtAnimation(targetHero);
+                }
+                else
+                {
+                    BattleHUD.Instance.PlayHeroDefeatAnimation(targetHero);
+                }
+
                 BattleHUD.Instance.UpdateAllStats();
                 BattleHUD.Instance.combatLogText.text = defendingHeroes.Contains(targetHero)
                     ? $"[BLOQUEIO] {enemy.enemyName} atacou <b>{targetHero.heroName}</b> causando {rawDamage} de dano! (-50%)"
