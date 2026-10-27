@@ -109,6 +109,13 @@ public class BattleHUD : MonoBehaviour
     public Sprite knightDefeat1;
     public Sprite knightDefeat2;
 
+    [Header("Sprites de Animação do Mago")]
+    public Sprite mageIdle;
+    public Sprite mageWindup;
+    public Sprite mageCast;
+    public Sprite mageHurt;
+    public Sprite mageDefeat;
+
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
     private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
@@ -758,11 +765,24 @@ public class BattleHUD : MonoBehaviour
                 hfd.hpText.text = $"HP: {h.currentHP}/{h.GetMaxHP()} | MP: {h.currentMP}/{h.GetMaxMP()}";
                 if (hfd.avatarImage != null)
                 {
-                    hfd.avatarImage.color = Color.white;
-                    if (h.heroClass == HeroClassType.Knight && knightIdle != null && hfd.activeAnimRoutine == null)
+                    if (h.heroClass == HeroClassType.Knight && hfd.activeAnimRoutine == null)
                     {
-                        hfd.avatarImage.sprite = knightIdle;
+                        if (knightIdle == null) LoadHeroAnimationSprites();
+                        if (knightIdle != null) hfd.avatarImage.sprite = knightIdle;
                     }
+                    else if (h.heroClass == HeroClassType.Mage && hfd.activeAnimRoutine == null)
+                    {
+                        if (mageIdle == null) LoadHeroAnimationSprites();
+                        if (mageIdle != null) hfd.avatarImage.sprite = mageIdle;
+                    }
+
+                    if (hfd.avatarImage.sprite == null)
+                    {
+                        Sprite spr = GetHeroSprite(h);
+                        if (spr != null) hfd.avatarImage.sprite = spr;
+                    }
+
+                    hfd.avatarImage.color = (hfd.avatarImage.sprite != null) ? Color.white : Color.clear;
                 }
             }
             else
@@ -775,6 +795,10 @@ public class BattleHUD : MonoBehaviour
                     if (h.heroClass == HeroClassType.Knight && knightDefeat2 != null)
                     {
                         hfd.avatarImage.sprite = knightDefeat2;
+                    }
+                    else if (h.heroClass == HeroClassType.Mage && mageDefeat != null)
+                    {
+                        hfd.avatarImage.sprite = mageDefeat;
                     }
                 }
             }
@@ -1522,6 +1546,14 @@ public class BattleHUD : MonoBehaviour
         if (knightHurt == null) knightHurt = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_hurt");
         if (knightDefeat1 == null) knightDefeat1 = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_defeat1");
         if (knightDefeat2 == null) knightDefeat2 = Resources.Load<Sprite>("Sprites/Heroes/Cavaleiro/cavaleiro_defeat2");
+
+        if (mageIdle == null) mageIdle = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_idle");
+        if (mageIdle == null) mageIdle = Resources.Load<Sprite>("Sprites/Heroes/mago");
+
+        if (mageWindup == null) mageWindup = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_windup");
+        if (mageCast == null) mageCast = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_cast");
+        if (mageHurt == null) mageHurt = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_hurt");
+        if (mageDefeat == null) mageDefeat = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_defeat");
     }
 
     #endregion
@@ -1543,46 +1575,94 @@ public class BattleHUD : MonoBehaviour
         Vector2 origPos = rt.anchoredPosition;
         Sprite baseSprite = hfd.avatarImage.sprite;
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+        bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
 
-        // 1. Antecipação (Wind-up): ergue a espada e avança na direção dos monstros à esquerda
-        if (isKnight && knightWindup != null) hfd.avatarImage.sprite = knightWindup;
-
-        float elapsed = 0f;
-        float dashTime = 0.12f;
-        Vector2 targetPos = origPos + new Vector2(-45f, 0f);
-
-        while (elapsed < dashTime)
+        if (isMage)
         {
-            elapsed += Time.deltaTime;
-            rt.anchoredPosition = Vector2.Lerp(origPos, targetPos, elapsed / dashTime);
-            yield return null;
+            // --- ATAQUE DO MAGO (Canalização Arcana e Disparo de Feitiço) ---
+            // 1. Canalização (Wind-up): ergue o cajado com poder arcano e leve flutuação para cima/frente
+            if (mageWindup != null) hfd.avatarImage.sprite = mageWindup;
+
+            float elapsed = 0f;
+            float prepTime = 0.22f;
+            Vector2 castPos = origPos + new Vector2(-18f, 8f);
+
+            while (elapsed < prepTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(origPos, castPos, elapsed / prepTime);
+                yield return null;
+            }
+
+            // 2. Disparo Mágico (Spell Launch): projeta o cajado disparando o feitiço
+            if (mageCast != null) hfd.avatarImage.sprite = mageCast;
+
+            // Efeito de tremor/impacto no cartão do monstro
+            var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+            if (efd != null)
+            {
+                StartCoroutine(ShakeEnemyCard(efd));
+            }
+
+            yield return new WaitForSeconds(0.24f);
+
+            // 3. Retorno suave para a base e restauração do sprite Idle
+            elapsed = 0f;
+            float returnTime = 0.15f;
+            while (elapsed < returnTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(castPos, origPos, elapsed / returnTime);
+                yield return null;
+            }
+
+            rt.anchoredPosition = origPos;
+            hfd.avatarImage.sprite = (mageIdle != null) ? mageIdle : baseSprite;
+            hfd.activeAnimRoutine = null;
         }
-
-        // 2. Golpe de Corte (Slash): atinge o ápice e corta com vento
-        if (isKnight && knightSlash != null) hfd.avatarImage.sprite = knightSlash;
-
-        // Efeito de impacto no cartão do monstro
-        var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
-        if (efd != null)
+        else
         {
-            StartCoroutine(ShakeEnemyCard(efd));
+            // --- ATAQUE DO CAVALEIRO / PADRÃO ---
+            // 1. Antecipação (Wind-up): ergue a espada e avança na direção dos monstros à esquerda
+            if (isKnight && knightWindup != null) hfd.avatarImage.sprite = knightWindup;
+
+            float elapsed = 0f;
+            float dashTime = 0.12f;
+            Vector2 targetPos = origPos + new Vector2(-45f, 0f);
+
+            while (elapsed < dashTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(origPos, targetPos, elapsed / dashTime);
+                yield return null;
+            }
+
+            // 2. Golpe de Corte (Slash): atinge o ápice e corta com vento
+            if (isKnight && knightSlash != null) hfd.avatarImage.sprite = knightSlash;
+
+            // Efeito de impacto no cartão do monstro
+            var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+            if (efd != null)
+            {
+                StartCoroutine(ShakeEnemyCard(efd));
+            }
+
+            yield return new WaitForSeconds(0.18f);
+
+            // 3. Retorno suave para a base e restauração do sprite Idle
+            elapsed = 0f;
+            float returnTime = 0.15f;
+            while (elapsed < returnTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(targetPos, origPos, elapsed / returnTime);
+                yield return null;
+            }
+
+            rt.anchoredPosition = origPos;
+            hfd.avatarImage.sprite = (isKnight && knightIdle != null) ? knightIdle : baseSprite;
+            hfd.activeAnimRoutine = null;
         }
-
-        yield return new WaitForSeconds(0.18f);
-
-        // 3. Retorno suave para a base e restauração do sprite Idle
-        elapsed = 0f;
-        float returnTime = 0.15f;
-        while (elapsed < returnTime)
-        {
-            elapsed += Time.deltaTime;
-            rt.anchoredPosition = Vector2.Lerp(targetPos, origPos, elapsed / returnTime);
-            yield return null;
-        }
-
-        rt.anchoredPosition = origPos;
-        hfd.avatarImage.sprite = (isKnight && knightIdle != null) ? knightIdle : baseSprite;
-        hfd.activeAnimRoutine = null;
     }
 
     public void PlayHeroHurtAnimation(HeroInstance hero)
@@ -1600,9 +1680,12 @@ public class BattleHUD : MonoBehaviour
         Vector2 origPos = rt.anchoredPosition;
         Sprite baseSprite = hfd.avatarImage.sprite;
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+        bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
 
         // Troca para o sprite de impacto com faíscas
         if (isKnight && knightHurt != null) hfd.avatarImage.sprite = knightHurt;
+        else if (isMage && mageHurt != null) hfd.avatarImage.sprite = mageHurt;
+
         hfd.cardImage.color = new Color(0.6f, 0.2f, 0.2f, 1f); // Flash de dano vermelho
 
         // Recuo de 18px para a direita (impacto sofrido da esquerda)
@@ -1616,7 +1699,9 @@ public class BattleHUD : MonoBehaviour
         hfd.cardImage.color = new Color(0.14f, 0.18f, 0.26f, 0.95f);
         if (hfd.hero.IsAlive)
         {
-            hfd.avatarImage.sprite = (isKnight && knightIdle != null) ? knightIdle : baseSprite;
+            if (isKnight && knightIdle != null) hfd.avatarImage.sprite = knightIdle;
+            else if (isMage && mageIdle != null) hfd.avatarImage.sprite = mageIdle;
+            else hfd.avatarImage.sprite = baseSprite;
         }
         hfd.activeAnimRoutine = null;
     }
@@ -1633,18 +1718,34 @@ public class BattleHUD : MonoBehaviour
     private IEnumerator HeroDefeatCoroutine(HeroFieldDisplay hfd)
     {
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
+        bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
 
-        // Estágio 1: Caindo de joelhos
-        if (isKnight && knightDefeat1 != null)
+        if (isMage)
         {
-            hfd.avatarImage.sprite = knightDefeat1;
-            yield return new WaitForSeconds(0.35f);
+            if (mageHurt != null)
+            {
+                hfd.avatarImage.sprite = mageHurt;
+                yield return new WaitForSeconds(0.25f);
+            }
+            if (mageDefeat != null)
+            {
+                hfd.avatarImage.sprite = mageDefeat;
+            }
         }
-
-        // Estágio 2: Desabando estendido no chão
-        if (isKnight && knightDefeat2 != null)
+        else if (isKnight)
         {
-            hfd.avatarImage.sprite = knightDefeat2;
+            // Estágio 1: Caindo de joelhos
+            if (knightDefeat1 != null)
+            {
+                hfd.avatarImage.sprite = knightDefeat1;
+                yield return new WaitForSeconds(0.35f);
+            }
+
+            // Estágio 2: Desabando estendido no chão
+            if (knightDefeat2 != null)
+            {
+                hfd.avatarImage.sprite = knightDefeat2;
+            }
         }
 
         hfd.cardImage.color = new Color(0.18f, 0.18f, 0.18f, 0.6f);
