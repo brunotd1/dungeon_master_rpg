@@ -116,6 +116,15 @@ public class BattleHUD : MonoBehaviour
     public Sprite mageHurt;
     public Sprite mageDefeat;
 
+    [Header("Sprites de Animação do Cavaleiro Pesado")]
+    public Sprite heavyKnightIdle;
+    public Sprite heavyKnightWindup1;
+    public Sprite heavyKnightWindup2;
+    public Sprite heavyKnightSlash;
+    public Sprite heavyKnightShieldBash;
+    public Sprite heavyKnightHurt;
+    public Sprite heavyKnightDefeat;
+
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
     private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
@@ -1554,30 +1563,131 @@ public class BattleHUD : MonoBehaviour
         if (mageCast == null) mageCast = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_cast");
         if (mageHurt == null) mageHurt = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_hurt");
         if (mageDefeat == null) mageDefeat = Resources.Load<Sprite>("Sprites/Heroes/Mago/mago_defeat");
+
+        if (heavyKnightIdle == null) heavyKnightIdle = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_idle");
+        if (heavyKnightIdle == null) heavyKnightIdle = Resources.Load<Sprite>("Sprites/Heroes/cavaleiro_pesado");
+
+        if (heavyKnightWindup1 == null) heavyKnightWindup1 = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_windup1");
+        if (heavyKnightWindup2 == null) heavyKnightWindup2 = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_windup2");
+        if (heavyKnightSlash == null) heavyKnightSlash = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_slash");
+        if (heavyKnightShieldBash == null) heavyKnightShieldBash = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_shield_bash");
+        if (heavyKnightHurt == null) heavyKnightHurt = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_hurt");
+        if (heavyKnightDefeat == null) heavyKnightDefeat = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_defeat");
     }
 
     #endregion
 
     #region Animações de Combate (Avanço, Golpe, Impacto e Derrota)
 
-    public void PlayHeroAttackAnimation(HeroInstance hero, int targetEnemyIndex)
+    public void PlayHeroAttackAnimation(HeroInstance hero, int targetEnemyIndex, string skillName = "")
     {
         var hfd = heroFieldDisplays.Find(d => d.hero == hero);
         if (hfd == null || hfd.avatarImage == null) return;
 
         if (hfd.activeAnimRoutine != null) StopCoroutine(hfd.activeAnimRoutine);
-        hfd.activeAnimRoutine = StartCoroutine(HeroAttackCoroutine(hfd, targetEnemyIndex));
+        hfd.activeAnimRoutine = StartCoroutine(HeroAttackCoroutine(hfd, targetEnemyIndex, skillName));
     }
 
-    private IEnumerator HeroAttackCoroutine(HeroFieldDisplay hfd, int targetEnemyIndex)
+    private IEnumerator HeroAttackCoroutine(HeroFieldDisplay hfd, int targetEnemyIndex, string skillName)
     {
         RectTransform rt = hfd.container.GetComponent<RectTransform>();
         Vector2 origPos = rt.anchoredPosition;
         Sprite baseSprite = hfd.avatarImage.sprite;
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
+        bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
 
-        if (isMage)
+        if (isHeavyKnight)
+        {
+            // Verifica se a habilidade é a Escudada (Shield Bash) ou Corte Especial
+            bool isShieldBash = !string.IsNullOrEmpty(skillName) &&
+                (skillName.ToLower().Contains("escudo") || skillName.ToLower().Contains("escudada") || skillName.ToLower().Contains("pancada") || skillName.ToLower().Contains("bash"));
+
+            if (isShieldBash)
+            {
+                // --- ESCUDADA (SHIELD BASH) ---
+                if (heavyKnightWindup1 != null) hfd.avatarImage.sprite = heavyKnightWindup1;
+
+                float elapsed = 0f;
+                float prepTime = 0.12f;
+                Vector2 prepPos = origPos + new Vector2(10f, 0f);
+                while (elapsed < prepTime)
+                {
+                    elapsed += Time.deltaTime;
+                    rt.anchoredPosition = Vector2.Lerp(origPos, prepPos, elapsed / prepTime);
+                    yield return null;
+                }
+
+                if (heavyKnightShieldBash != null) hfd.avatarImage.sprite = heavyKnightShieldBash;
+
+                elapsed = 0f;
+                float bashTime = 0.14f;
+                Vector2 bashPos = origPos + new Vector2(-55f, 0f);
+                while (elapsed < bashTime)
+                {
+                    elapsed += Time.deltaTime;
+                    rt.anchoredPosition = Vector2.Lerp(prepPos, bashPos, elapsed / bashTime);
+                    yield return null;
+                }
+
+                var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+                if (efd != null) StartCoroutine(ShakeEnemyCard(efd));
+
+                yield return new WaitForSeconds(0.22f);
+
+                elapsed = 0f;
+                float returnTime = 0.16f;
+                while (elapsed < returnTime)
+                {
+                    elapsed += Time.deltaTime;
+                    rt.anchoredPosition = Vector2.Lerp(bashPos, origPos, elapsed / returnTime);
+                    yield return null;
+                }
+
+                rt.anchoredPosition = origPos;
+                hfd.avatarImage.sprite = (heavyKnightIdle != null) ? heavyKnightIdle : baseSprite;
+                hfd.activeAnimRoutine = null;
+            }
+            else
+            {
+                // --- GOLPE DE ESPADA / CORTE ESPECIAL (Fase 1: Recuo -> Fase 2: Erguendo -> Fase 3: Corte) ---
+                if (heavyKnightWindup1 != null) hfd.avatarImage.sprite = heavyKnightWindup1;
+                yield return new WaitForSeconds(0.12f);
+
+                if (heavyKnightWindup2 != null) hfd.avatarImage.sprite = heavyKnightWindup2;
+
+                float elapsed = 0f;
+                float dashTime = 0.14f;
+                Vector2 targetPos = origPos + new Vector2(-35f, 0f);
+                while (elapsed < dashTime)
+                {
+                    elapsed += Time.deltaTime;
+                    rt.anchoredPosition = Vector2.Lerp(origPos, targetPos, elapsed / dashTime);
+                    yield return null;
+                }
+
+                if (heavyKnightSlash != null) hfd.avatarImage.sprite = heavyKnightSlash;
+
+                var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+                if (efd != null) StartCoroutine(ShakeEnemyCard(efd));
+
+                yield return new WaitForSeconds(0.24f);
+
+                elapsed = 0f;
+                float returnTime = 0.15f;
+                while (elapsed < returnTime)
+                {
+                    elapsed += Time.deltaTime;
+                    rt.anchoredPosition = Vector2.Lerp(targetPos, origPos, elapsed / returnTime);
+                    yield return null;
+                }
+
+                rt.anchoredPosition = origPos;
+                hfd.avatarImage.sprite = (heavyKnightIdle != null) ? heavyKnightIdle : baseSprite;
+                hfd.activeAnimRoutine = null;
+            }
+        }
+        else if (isMage)
         {
             // --- ATAQUE DO MAGO (Canalização Arcana e Disparo de Feitiço) ---
             // 1. Canalização (Wind-up): ergue o cajado com poder arcano e leve flutuação para cima/frente
@@ -1681,10 +1791,12 @@ public class BattleHUD : MonoBehaviour
         Sprite baseSprite = hfd.avatarImage.sprite;
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
+        bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
 
         // Troca para o sprite de impacto com faíscas
         if (isKnight && knightHurt != null) hfd.avatarImage.sprite = knightHurt;
         else if (isMage && mageHurt != null) hfd.avatarImage.sprite = mageHurt;
+        else if (isHeavyKnight && heavyKnightHurt != null) hfd.avatarImage.sprite = heavyKnightHurt;
 
         hfd.cardImage.color = new Color(0.6f, 0.2f, 0.2f, 1f); // Flash de dano vermelho
 
@@ -1701,6 +1813,7 @@ public class BattleHUD : MonoBehaviour
         {
             if (isKnight && knightIdle != null) hfd.avatarImage.sprite = knightIdle;
             else if (isMage && mageIdle != null) hfd.avatarImage.sprite = mageIdle;
+            else if (isHeavyKnight && heavyKnightIdle != null) hfd.avatarImage.sprite = heavyKnightIdle;
             else hfd.avatarImage.sprite = baseSprite;
         }
         hfd.activeAnimRoutine = null;
@@ -1719,8 +1832,21 @@ public class BattleHUD : MonoBehaviour
     {
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
+        bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
 
-        if (isMage)
+        if (isHeavyKnight)
+        {
+            if (heavyKnightHurt != null)
+            {
+                hfd.avatarImage.sprite = heavyKnightHurt;
+                yield return new WaitForSeconds(0.25f);
+            }
+            if (heavyKnightDefeat != null)
+            {
+                hfd.avatarImage.sprite = heavyKnightDefeat;
+            }
+        }
+        else if (isMage)
         {
             if (mageHurt != null)
             {

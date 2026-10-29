@@ -357,7 +357,7 @@ public class BattleManager : MonoBehaviour
 
         if (BattleHUD.Instance != null)
         {
-            BattleHUD.Instance.PlayHeroAttackAnimation(attacker, targetEnemyIndex);
+            BattleHUD.Instance.PlayHeroAttackAnimation(attacker, targetEnemyIndex, skill.skillName);
         }
 
         attacker.hasActedThisRound = true;
