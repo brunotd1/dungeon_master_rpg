@@ -125,6 +125,13 @@ public class BattleHUD : MonoBehaviour
     public Sprite heavyKnightHurt;
     public Sprite heavyKnightDefeat;
 
+    [Header("Sprites de Animacao do Ladino")]
+    public Sprite rogueIdle;
+    public Sprite rogueWindup;
+    public Sprite rogueAttack;
+    public Sprite rogueHurt;
+    public Sprite rogueDefeat;
+
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
     private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
@@ -1573,6 +1580,14 @@ public class BattleHUD : MonoBehaviour
         if (heavyKnightShieldBash == null) heavyKnightShieldBash = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_shield_bash");
         if (heavyKnightHurt == null) heavyKnightHurt = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_hurt");
         if (heavyKnightDefeat == null) heavyKnightDefeat = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_defeat");
+
+        if (rogueIdle == null) rogueIdle = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_idle");
+        if (rogueIdle == null) rogueIdle = Resources.Load<Sprite>("Sprites/Heroes/ladino");
+
+        if (rogueWindup == null) rogueWindup = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_windup");
+        if (rogueAttack == null) rogueAttack = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_attack");
+        if (rogueHurt == null) rogueHurt = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_hurt");
+        if (rogueDefeat == null) rogueDefeat = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_defeat");
     }
 
     #endregion
@@ -1596,8 +1611,54 @@ public class BattleHUD : MonoBehaviour
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
         bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
+        bool isRogue = hfd.hero.heroClass == HeroClassType.Rogue;
 
-        if (isHeavyKnight)
+        if (isRogue)
+        {
+            // --- ATAQUE DO LADINO (Estocada Dupla Rasante) ---
+            if (rogueWindup != null) hfd.avatarImage.sprite = rogueWindup;
+
+            float elapsed = 0f;
+            float prepTime = 0.10f;
+            Vector2 prepPos = origPos + new Vector2(8f, -4f);
+            while (elapsed < prepTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(origPos, prepPos, elapsed / prepTime);
+                yield return null;
+            }
+
+            if (rogueAttack != null) hfd.avatarImage.sprite = rogueAttack;
+
+            elapsed = 0f;
+            float dashTime = 0.11f;
+            Vector2 attackPos = origPos + new Vector2(-60f, 0f);
+            while (elapsed < dashTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(prepPos, attackPos, elapsed / dashTime);
+                yield return null;
+            }
+
+            var efd = (targetEnemyIndex >= 0 && targetEnemyIndex < enemyFieldDisplays.Count) ? enemyFieldDisplays[targetEnemyIndex] : null;
+            if (efd != null) StartCoroutine(ShakeEnemyCard(efd));
+
+            yield return new WaitForSeconds(0.20f);
+
+            elapsed = 0f;
+            float returnTime = 0.13f;
+            while (elapsed < returnTime)
+            {
+                elapsed += Time.deltaTime;
+                rt.anchoredPosition = Vector2.Lerp(attackPos, origPos, elapsed / returnTime);
+                yield return null;
+            }
+
+            rt.anchoredPosition = origPos;
+            hfd.avatarImage.sprite = (rogueIdle != null) ? rogueIdle : baseSprite;
+            hfd.activeAnimRoutine = null;
+        }
+        else if (isHeavyKnight)
         {
             // Verifica se a habilidade é a Escudada (Shield Bash) ou Corte Especial
             bool isShieldBash = !string.IsNullOrEmpty(skillName) &&
@@ -1792,11 +1853,13 @@ public class BattleHUD : MonoBehaviour
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
         bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
+        bool isRogue = hfd.hero.heroClass == HeroClassType.Rogue;
 
         // Troca para o sprite de impacto com faíscas
         if (isKnight && knightHurt != null) hfd.avatarImage.sprite = knightHurt;
         else if (isMage && mageHurt != null) hfd.avatarImage.sprite = mageHurt;
         else if (isHeavyKnight && heavyKnightHurt != null) hfd.avatarImage.sprite = heavyKnightHurt;
+        else if (isRogue && rogueHurt != null) hfd.avatarImage.sprite = rogueHurt;
 
         hfd.cardImage.color = new Color(0.6f, 0.2f, 0.2f, 1f); // Flash de dano vermelho
 
@@ -1814,6 +1877,7 @@ public class BattleHUD : MonoBehaviour
             if (isKnight && knightIdle != null) hfd.avatarImage.sprite = knightIdle;
             else if (isMage && mageIdle != null) hfd.avatarImage.sprite = mageIdle;
             else if (isHeavyKnight && heavyKnightIdle != null) hfd.avatarImage.sprite = heavyKnightIdle;
+            else if (isRogue && rogueIdle != null) hfd.avatarImage.sprite = rogueIdle;
             else hfd.avatarImage.sprite = baseSprite;
         }
         hfd.activeAnimRoutine = null;
@@ -1833,8 +1897,21 @@ public class BattleHUD : MonoBehaviour
         bool isKnight = hfd.hero.heroClass == HeroClassType.Knight;
         bool isMage = hfd.hero.heroClass == HeroClassType.Mage;
         bool isHeavyKnight = hfd.hero.heroClass == HeroClassType.HeavyKnight;
+        bool isRogue = hfd.hero.heroClass == HeroClassType.Rogue;
 
-        if (isHeavyKnight)
+        if (isRogue)
+        {
+            if (rogueHurt != null)
+            {
+                hfd.avatarImage.sprite = rogueHurt;
+                yield return new WaitForSeconds(0.25f);
+            }
+            if (rogueDefeat != null)
+            {
+                hfd.avatarImage.sprite = rogueDefeat;
+            }
+        }
+        else if (isHeavyKnight)
         {
             if (heavyKnightHurt != null)
             {

@@ -69,6 +69,11 @@ public static class HeroGenerator
             Sprite hk = Resources.Load<Sprite>("Sprites/Heroes/CavaleiroPesado/cavaleiro_pesado_idle");
             if (hk != null) return hk;
         }
+        else if (heroClass == HeroClassType.Rogue)
+        {
+            Sprite rg = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_idle");
+            if (rg != null) return rg;
+        }
 
         string spriteName = "";
         switch (heroClass)
