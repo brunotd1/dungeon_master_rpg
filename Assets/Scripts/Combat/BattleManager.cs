@@ -50,9 +50,9 @@ public class BattleManager : MonoBehaviour
     public EnemyData floorBossEnemy;
 
     [Header("Turno e Seleção")]
-    public HeroInstance selectedHero = null;
+    [System.NonSerialized] public HeroInstance selectedHero = null;
     public HeroInstance CurrentHero => selectedHero;
-    public HeroSkill pendingSkill = null;
+    [System.NonSerialized] public HeroSkill pendingSkill = null;
 
     // Registra quais heróis estão em postura defensiva nesta rodada
     private HashSet<HeroInstance> defendingHeroes = new HashSet<HeroInstance>();
@@ -277,8 +277,11 @@ public class BattleManager : MonoBehaviour
         if (currentState != BattleState.HeroTurn || selectedHero == null) return;
         if (selectedHero.hasActedThisRound) return;
 
-        if (skill == null)
+        if (skill == null || string.IsNullOrEmpty(skill.skillName) || skill.damageMultiplier <= 0f)
         {
+            if (selectedHero.availableSkills == null || selectedHero.availableSkills.Count == 0)
+                selectedHero.InitializeDefaultSkills();
+
             skill = (selectedHero.availableSkills != null && selectedHero.availableSkills.Count > 0)
                 ? selectedHero.availableSkills[0]
                 : new HeroSkill("Ataque Básico", "Golpe físico padrão.", 0, 1.0f);
@@ -315,8 +318,11 @@ public class BattleManager : MonoBehaviour
         }
 
         HeroSkill skill = skillToUse ?? pendingSkill;
-        if (skill == null)
+        if (skill == null || string.IsNullOrEmpty(skill.skillName) || skill.damageMultiplier <= 0f)
         {
+            if (selectedHero.availableSkills == null || selectedHero.availableSkills.Count == 0)
+                selectedHero.InitializeDefaultSkills();
+
             skill = (selectedHero.availableSkills != null && selectedHero.availableSkills.Count > 0)
                 ? selectedHero.availableSkills[0]
                 : new HeroSkill("Ataque Básico", "Golpe físico padrão.", 0, 1.0f);

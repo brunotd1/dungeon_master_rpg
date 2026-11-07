@@ -38,12 +38,27 @@ public class ItemData : ScriptableObject
     public ItemType itemType = ItemType.Weapon;
     public ItemRarity rarity = ItemRarity.Common;
     public Sprite icon;
+    [Tooltip("Caminho alternativo nos Resources (ex: 'Sprites/Equipment/wp_sword_iron')")]
+    public string iconPath = "";
+
+    public Sprite GetIcon()
+    {
+        if (icon != null) return icon;
+        if (!string.IsNullOrEmpty(iconPath))
+        {
+            icon = Resources.Load<Sprite>(iconPath);
+        }
+        return icon;
+    }
 
     [Header("Economia")]
     [Tooltip("Valor em moedas de ouro")]
     public int goldValue = 50;
 
-    [Header("Requisitos de Atributos (Estilo Dark Souls)")]
+    [Header("Requisitos de Classe e Atributos (Estilo Dark Souls)")]
+    [Tooltip("Classes permitidas para usar este item (vazio = todas as classes)")]
+    public HeroClassType[] allowedClasses;
+
     [Tooltip("Força mínima necessária para empunhar/usar")]
     public int requiredStrength = 0;
 
@@ -56,6 +71,10 @@ public class ItemData : ScriptableObject
     [Tooltip("Nível mínimo do herói")]
     public int requiredLevel = 1;
 
+    [Header("Efeitos de Consumível (Poções)")]
+    public int healHP = 0;
+    public int healMP = 0;
+
     [Header("Bônus de Estatísticas (Concedidos quando equipado)")]
     public int bonusAttack = 0;
     public int bonusDefense = 0;
@@ -65,6 +84,59 @@ public class ItemData : ScriptableObject
     public int bonusSpeed = 0;
     public float bonusCritRate = 0f;
 
+    public bool IsClassAllowed(HeroClassType heroClass)
+    {
+        if (allowedClasses == null || allowedClasses.Length == 0) return true;
+        for (int i = 0; i < allowedClasses.Length; i++)
+        {
+            if (allowedClasses[i] == heroClass) return true;
+        }
+        return false;
+    }
+
+    public string GetAllowedClassesText()
+    {
+        if (allowedClasses == null || allowedClasses.Length == 0) return "Todas as Classes";
+        System.Collections.Generic.List<string> names = new System.Collections.Generic.List<string>();
+        for (int i = 0; i < allowedClasses.Length; i++)
+        {
+            names.Add(FormatClassName(allowedClasses[i]));
+        }
+        return string.Join(", ", names);
+    }
+
+    public static string FormatClassName(HeroClassType c)
+    {
+        switch (c)
+        {
+            case HeroClassType.Knight: return "Cavaleiro";
+            case HeroClassType.HeavyKnight: return "Cav. Pesado";
+            case HeroClassType.Mage: return "Mago";
+            case HeroClassType.Rogue: return "Ladino";
+            default: return c.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Verifica se o herói atende à classe e aos atributos exigidos pelo equipamento.
+    /// </summary>
+    public bool CanBeEquippedBy(HeroInstance hero, out string reason)
+    {
+        if (hero == null)
+        {
+            reason = "Herói inválido.";
+            return false;
+        }
+
+        if (!IsClassAllowed(hero.heroClass))
+        {
+            reason = $"Classe incompatível ({FormatClassName(hero.heroClass)}). Exclusivo para: {GetAllowedClassesText()}.";
+            return false;
+        }
+
+        return CanBeEquippedBy(hero.level, hero.GetCurrentAttributes(), out reason);
+    }
+
     /// <summary>
     /// Verifica se um herói atende a todos os requisitos de Dark Souls para equipar este item.
     /// </summary>
@@ -72,29 +144,29 @@ public class ItemData : ScriptableObject
     {
         if (heroLevel < requiredLevel)
         {
-            reason = $"Nível insuficiente! Requer nível {requiredLevel}.";
+            reason = $"Nível insuficiente! Requer Nv. {requiredLevel}.";
             return false;
         }
 
         if (heroAttrs.strength < requiredStrength)
         {
-            reason = $"Força insuficiente! Requer {requiredStrength} FOR (Você tem {heroAttrs.strength}).";
+            reason = $"Força insuficiente! Requer {requiredStrength} FOR (Atual: {heroAttrs.strength}).";
             return false;
         }
 
         if (heroAttrs.dexterity < requiredDexterity)
         {
-            reason = $"Destreza insuficiente! Requer {requiredDexterity} DES (Você tem {heroAttrs.dexterity}).";
+            reason = $"Destreza insuficiente! Requer {requiredDexterity} DES (Atual: {heroAttrs.dexterity}).";
             return false;
         }
 
         if (heroAttrs.intelligence < requiredIntelligence)
         {
-            reason = $"Inteligência insuficiente! Requer {requiredIntelligence} INT (Você tem {heroAttrs.intelligence}).";
+            reason = $"Inteligência insuficiente! Requer {requiredIntelligence} INT (Atual: {heroAttrs.intelligence}).";
             return false;
         }
 
-        reason = "Apto para equipar!";
+        reason = "Compatível e apto para equipar!";
         return true;
     }
 }

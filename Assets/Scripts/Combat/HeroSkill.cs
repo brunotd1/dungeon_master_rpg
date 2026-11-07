@@ -25,7 +25,10 @@ public class HeroSkill
     [Tooltip("Chance adicional de acerto crítico")]
     public float critBonus = 0f;
 
-    public HeroSkill(string name, string desc, int cost, float multiplier, bool magic = false, float crit = 0f)
+    [Tooltip("Caminho do ícone nos Resources (ex: 'Sprites/Icons/skill_knight_slash')")]
+    public string iconPath = "";
+
+    public HeroSkill(string name, string desc, int cost, float multiplier, bool magic = false, float crit = 0f, string icon = "")
     {
         skillName = name;
         description = desc;
@@ -33,5 +36,6 @@ public class HeroSkill
         damageMultiplier = multiplier;
         isMagic = magic;
         critBonus = crit;
+        iconPath = icon;
     }
 }

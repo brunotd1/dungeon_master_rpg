@@ -89,5 +89,12 @@ public static class AutoSceneBootstrap
             GameObject bmObj = new GameObject("BattleManager", typeof(BattleManager));
             Debug.Log("[AutoSceneBootstrap] BattleManager criado dinamicamente.");
         }
+
+        // 7. Garante o PartyMenuUI (Menu da Guilda estilo RPG Maker)
+        if (PartyMenuUI.Instance == null && Object.FindAnyObjectByType<PartyMenuUI>() == null)
+        {
+            GameObject menuObj = new GameObject("PartyMenuUI", typeof(PartyMenuUI));
+            Debug.Log("[AutoSceneBootstrap] PartyMenuUI criado dinamicamente.");
+        }
     }
 }

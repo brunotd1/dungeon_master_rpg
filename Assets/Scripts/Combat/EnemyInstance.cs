@@ -37,15 +37,23 @@ public class EnemyInstance
     }
 
     /// <summary>
-    /// Sorteia se o monstro derrubou algum item raro após morrer.
+    /// Sorteia se o monstro derrubou algum item após morrer.
     /// </summary>
     public bool CheckLootDrop(out ItemData item)
     {
         item = null;
-        if (data.possibleDrop != null && Random.value <= data.dropChance)
+        float chance = (data != null && data.dropChance > 0f) ? data.dropChance : 0.30f;
+        if (Random.value <= chance)
         {
-            item = data.possibleDrop;
-            return true;
+            if (data != null && data.possibleDrop != null && data.possibleDrop.GetIcon() != null)
+            {
+                item = data.possibleDrop;
+            }
+            else
+            {
+                item = ItemGenerator.GenerateRandomDungeonDrop();
+            }
+            return item != null;
         }
         return false;
     }

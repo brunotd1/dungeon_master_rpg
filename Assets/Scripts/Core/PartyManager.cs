@@ -81,7 +81,14 @@ public class PartyManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"⚔️ [GUILDA PRONTA] Grupo de 4 aventureiros convocado para invadir a masmorra!");
+        foreach (var hero in activeParty)
+        {
+            ItemGenerator.EquipStarterGear(hero);
+        }
+
+        ItemGenerator.PopulateGuildBackpack(this);
+
+        Debug.Log($"⚔️ [GUILDA PRONTA] Grupo de 4 aventureiros convocado e equipado para invadir a masmorra!");
     }
 
     /// <summary>

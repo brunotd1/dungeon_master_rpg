@@ -90,32 +90,40 @@ public class HeroInstance
     /// </summary>
     public void InitializeDefaultSkills()
     {
-        availableSkills.Clear();
+        if (availableSkills == null)
+            availableSkills = new System.Collections.Generic.List<HeroSkill>();
+        else
+            availableSkills.Clear();
 
-        // 1. Ataque Normal (Presente em todos os heróis, 0 MP)
-        availableSkills.Add(new HeroSkill("Ataque Básico", "Golpe físico padrão utilizando a arma equipada.", 0, 1.0f, false, 0f));
-
-        // 2. Habilidades específicas da Classe (Ajustadas dinamicamente)
+        // 1 e 2. Habilidades específicas da Classe (incluindo ícones Raven)
         switch (heroClass)
         {
             case HeroClassType.Knight:
-                availableSkills.Add(new HeroSkill("Golpe Pesado", "Concentra força na lâmina desferindo um ataque com 160% de dano físico.", 10, 1.6f, false, 5f));
-                availableSkills.Add(new HeroSkill("Investida com Escudo", "Avança com o escudo, causando 130% de dano com alta chance crítica.", 14, 1.3f, false, 20f));
+                availableSkills.Add(new HeroSkill("Ataque Básico", "Golpe físico padrão utilizando a espada temperada.", 0, 1.0f, false, 0f, "Sprites/Icons/skill_knight_slash"));
+                availableSkills.Add(new HeroSkill("Golpe Pesado", "Concentra força na lâmina desferindo um ataque com 160% de dano físico.", 10, 1.6f, false, 5f, "Sprites/Icons/skill_knight_heavy"));
+                availableSkills.Add(new HeroSkill("Investida com Escudo", "Avança com o escudo, causando 130% de dano com alta chance crítica.", 14, 1.3f, false, 20f, "Sprites/Icons/skill_knight_shield"));
                 break;
 
             case HeroClassType.HeavyKnight:
-                availableSkills.Add(new HeroSkill("Pancada de Ferro", "Impacto esmagador aproveitando o peso da armadura (150% de dano físico).", 10, 1.5f, false, 0f));
-                availableSkills.Add(new HeroSkill("Fenda Sísmica", "Golpe brutal no solo causando 190% de impacto físico na criatura.", 16, 1.9f, false, 5f));
+                availableSkills.Add(new HeroSkill("Ataque Básico", "Golpe contundente com espada montante de ferro.", 0, 1.0f, false, 0f, "Sprites/Icons/skill_heavy_slash"));
+                availableSkills.Add(new HeroSkill("Pancada de Ferro", "Impacto esmagador aproveitando o peso da armadura (150% de dano físico).", 10, 1.5f, false, 0f, "Sprites/Icons/skill_heavy_bash"));
+                availableSkills.Add(new HeroSkill("Fenda Sísmica", "Golpe brutal no solo causando 190% de impacto físico na criatura.", 16, 1.9f, false, 5f, "Sprites/Icons/skill_heavy_quake"));
                 break;
 
             case HeroClassType.Mage:
-                availableSkills.Add(new HeroSkill("Bola de Fogo", "Esfera incandescente causando 175% de dano mágico baseado na Inteligência.", 12, 1.75f, true, 5f));
-                availableSkills.Add(new HeroSkill("Descarga Elétrica", "Raio arcano que atravessa o monstro causando 220% de dano mágico.", 18, 2.2f, true, 10f));
+                availableSkills.Add(new HeroSkill("Ataque Básico", "Projétil de energia concentrada disparado pelo cajado.", 0, 1.0f, true, 0f, "Sprites/Icons/skill_mage_bolt"));
+                availableSkills.Add(new HeroSkill("Bola de Fogo", "Esfera incandescente causando 175% de dano mágico baseado na Inteligência.", 12, 1.75f, true, 5f, "Sprites/Icons/skill_mage_fireball"));
+                availableSkills.Add(new HeroSkill("Descarga Elétrica", "Raio arcano que atravessa o monstro causando 220% de dano mágico.", 18, 2.2f, true, 10f, "Sprites/Icons/skill_mage_lightning"));
                 break;
 
             case HeroClassType.Rogue:
-                availableSkills.Add(new HeroSkill("Ataque Furtivo", "Golpe certeiro em pontos fracos com 150% de dano e +35% de chance crítica.", 10, 1.5f, false, 35f));
-                availableSkills.Add(new HeroSkill("Lâmina Penetrante", "Perfuração rápida causando 200% de dano físico crítico.", 16, 2.0f, false, 15f));
+                availableSkills.Add(new HeroSkill("Ataque Básico", "Corte ágil com lâmina curta afiada.", 0, 1.0f, false, 0f, "Sprites/Icons/skill_rogue_stab"));
+                availableSkills.Add(new HeroSkill("Ataque Furtivo", "Golpe certeiro em pontos fracos com 150% de dano e +35% de chance crítica.", 10, 1.5f, false, 35f, "Sprites/Icons/skill_rogue_sneak"));
+                availableSkills.Add(new HeroSkill("Lâmina Penetrante", "Perfuração rápida causando 200% de dano físico crítico.", 16, 2.0f, false, 15f, "Sprites/Icons/skill_rogue_pierce"));
+                break;
+
+            default:
+                availableSkills.Add(new HeroSkill("Ataque Básico", "Golpe físico padrão utilizando a arma equipada.", 0, 1.0f, false, 0f, "Sprites/Icons/skill_knight_slash"));
                 break;
         }
     }
@@ -125,6 +133,9 @@ public class HeroInstance
     /// </summary>
     public HeroAttributes GetCurrentAttributes()
     {
+        if (heroData == null)
+            return new HeroAttributes(10 + allocatedStrength, 10 + allocatedDexterity, 10 + allocatedIntelligence, 10 + allocatedVitality);
+
         int levelsGained = level - 1;
         return new HeroAttributes(
             heroData.baseAttributes.strength + (heroData.growthPerLevel.strength * levelsGained) + allocatedStrength,
@@ -138,49 +149,49 @@ public class HeroInstance
 
     public int GetMaxHP()
     {
-        int baseVal = heroData.CalculateMaxHP(level, GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculateMaxHP(level, GetCurrentAttributes()) : 100;
         int equipBonus = GetEquipBonus(i => i.bonusMaxHP);
         return baseVal + equipBonus;
     }
 
     public int GetMaxMP()
     {
-        int baseVal = heroData.CalculateMaxMP(level, GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculateMaxMP(level, GetCurrentAttributes()) : 50;
         int equipBonus = GetEquipBonus(i => i.bonusMaxMP);
         return baseVal + equipBonus;
     }
 
     public int GetPhysicalAttack()
     {
-        int baseVal = heroData.CalculatePhysicalAttack(GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculatePhysicalAttack(GetCurrentAttributes()) : 15;
         int equipBonus = GetEquipBonus(i => i.bonusAttack);
         return baseVal + equipBonus;
     }
 
     public int GetPhysicalDefense()
     {
-        int baseVal = heroData.CalculatePhysicalDefense(GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculatePhysicalDefense(GetCurrentAttributes()) : 8;
         int equipBonus = GetEquipBonus(i => i.bonusDefense);
         return baseVal + equipBonus;
     }
 
     public int GetMagicAttack()
     {
-        int baseVal = heroData.CalculateMagicAttack(GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculateMagicAttack(GetCurrentAttributes()) : 15;
         int equipBonus = GetEquipBonus(i => i.bonusMagicAttack);
         return baseVal + equipBonus;
     }
 
     public int GetSpeed()
     {
-        int baseVal = heroData.CalculateSpeed(GetCurrentAttributes());
+        int baseVal = heroData != null ? heroData.CalculateSpeed(GetCurrentAttributes()) : 10;
         int equipBonus = GetEquipBonus(i => i.bonusSpeed);
         return baseVal + equipBonus;
     }
 
     public float GetCritRate()
     {
-        float baseVal = heroData.CalculateCritRate(GetCurrentAttributes());
+        float baseVal = heroData != null ? heroData.CalculateCritRate(GetCurrentAttributes()) : 5f;
         float equipBonus = 0f;
         ForEachEquippedItem(i => equipBonus += i.bonusCritRate);
         return baseVal + equipBonus;
@@ -201,8 +212,8 @@ public class HeroInstance
             return false;
         }
 
-        // Valida atributos Dark Souls
-        if (!item.CanBeEquippedBy(level, GetCurrentAttributes(), out feedbackMessage))
+        // Valida classe e atributos Dark Souls
+        if (!item.CanBeEquippedBy(this, out feedbackMessage))
         {
             return false;
         }

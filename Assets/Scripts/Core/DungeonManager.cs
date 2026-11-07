@@ -183,6 +183,8 @@ public class DungeonManager : MonoBehaviour
                 if (PartyManager.Instance != null)
                 {
                     PartyManager.Instance.AddGold(Random.Range(50, 120) * currentFloor);
+                    ItemData chestLoot = ItemGenerator.GenerateRandomDungeonDrop();
+                    PartyManager.Instance.AddItemToInventory(chestLoot);
                 }
                 break;
 

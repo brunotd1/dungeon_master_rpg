@@ -260,6 +260,12 @@ public class BattleHUD : MonoBehaviour
         turnBannerText.color = Color.white;
         turnBannerText.text = "=== ARENA DE COMBATE ===";
 
+        // BotÃ£o de Acesso RÃ¡pido ao Menu da Guilda / Equipamentos (Estilo RPG Maker)
+        Button guildMenuBtn = CreateButton(battleRootPanel.transform, "GuildMenuBtn", "[ GUILDA (M) ]", new Vector2(0.82f, 0.92f), new Vector2(0.98f, 0.98f), new Color(0.18f, 0.35f, 0.55f));
+        guildMenuBtn.onClick.AddListener(() => {
+            PartyMenuUI.Instance.ToggleMenu();
+        });
+
         // 3. Log de Combate (Logo abaixo do banner)
         GameObject logObj = CreateUIObject("CombatLog", battleRootPanel.transform, new Vector2(0.15f, 0.87f), new Vector2(0.85f, 0.92f));
         combatLogText = logObj.AddComponent<TextMeshProUGUI>();
@@ -308,6 +314,24 @@ public class BattleHUD : MonoBehaviour
         potionBtn = CreateButton(commandBoxPanel, "PotionBtn", "POÇÃO (6/6)", new Vector2(0.52f, 0.38f), new Vector2(0.96f, 0.68f), new Color(0.18f, 0.58f, 0.32f));
         potionBtnText = potionBtn.GetComponentInChildren<TextMeshProUGUI>();
         potionBtn.onClick.AddListener(OnClickUsePotion);
+
+        // Ãcone decorativo da PoÃ§Ã£o de Vida (Raven Fantasy Icons)
+        Sprite hpPotionSprite = Resources.Load<Sprite>("Sprites/Icons/potion_hp");
+        if (hpPotionSprite != null)
+        {
+            GameObject potIconObj = CreateUIObject("PotionIcon", potionBtn.transform, new Vector2(0.04f, 0.12f), new Vector2(0.24f, 0.88f));
+            Image potImg = potIconObj.AddComponent<Image>();
+            potImg.sprite = hpPotionSprite;
+            potImg.preserveAspect = true;
+            potImg.raycastTarget = false;
+
+            if (potionBtnText != null)
+            {
+                RectTransform rt = potionBtnText.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.24f, 0.00f);
+                rt.anchorMax = new Vector2(0.98f, 1.00f);
+            }
+        }
 
         defendBtn = CreateButton(commandBoxPanel, "DefendBtn", "[ DEFENDER ]", new Vector2(0.04f, 0.05f), new Vector2(0.48f, 0.34f), new Color(0.20f, 0.38f, 0.65f));
         defendBtn.onClick.AddListener(OnClickDefend);
@@ -884,7 +908,7 @@ public class BattleHUD : MonoBehaviour
 
         if (statusHeroAvatarImage != null)
         {
-            if (hero != null)
+            if (hero != null && hero.heroData != null && !string.IsNullOrEmpty(hero.heroName))
             {
                 Sprite spr = GetHeroSprite(hero);
                 if (spr != null)
@@ -903,7 +927,7 @@ public class BattleHUD : MonoBehaviour
             }
         }
 
-        if (hero == null)
+        if (hero == null || hero.heroData == null || string.IsNullOrEmpty(hero.heroName))
         {
             statusHeroTitleText.text = "<b>Nenhum aventureiro selecionado.</b>";
             statusVitalsText.text = "Clique em um herói no campo de batalha ou nas abas acima.";
@@ -1029,7 +1053,7 @@ public class BattleHUD : MonoBehaviour
             OnSelectSkillToExecute(skill);
         });
 
-        // Título / Nome da Habilidade
+        // TÃ­tulo / Nome da Habilidade
         GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.04f, 0.65f), new Vector2(0.96f, 0.96f));
         TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
         titleTmp.fontSize = 15;
@@ -1052,7 +1076,7 @@ public class BattleHUD : MonoBehaviour
         string mpWarning = hasMp ? "" : " [SEM MP]";
         costTmp.text = $"{costStr} | {typeStr}{mpWarning}";
 
-        // Descrição e Dano
+        // DescriÃ§Ã£o e Dano
         GameObject descObj = CreateUIObject("Desc", cardObj.transform, new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.38f));
         TextMeshProUGUI descTmp = descObj.AddComponent<TextMeshProUGUI>();
         descTmp.fontSize = 12;
@@ -1106,7 +1130,7 @@ public class BattleHUD : MonoBehaviour
 
         ShowHeroStatusView();
 
-        if (hero == null)
+        if (hero == null || hero.heroData == null || string.IsNullOrEmpty(hero.heroName))
         {
             commandHeaderTitle.color = Color.white;
             commandHeaderTitle.text = "SELECIONE UM HERÓI";
@@ -1331,9 +1355,7 @@ public class BattleHUD : MonoBehaviour
 
     public void OpenPartyAdminModal()
     {
-        if (partyAdminModal == null) return;
-        partyAdminModal.SetActive(true);
-        RefreshAdminPartyCards();
+        PartyMenuUI.Instance.OpenMenu();
     }
 
     public void ClosePartyAdminModal()
@@ -1529,7 +1551,7 @@ public class BattleHUD : MonoBehaviour
 
     public static Sprite GetHeroSprite(HeroInstance hero)
     {
-        if (hero == null) return null;
+        if (hero == null || hero.heroData == null || string.IsNullOrEmpty(hero.heroName)) return null;
         if (hero.heroData != null && hero.heroData.battleSprite != null)
             return hero.heroData.battleSprite;
         return HeroGenerator.GetClassSprite(hero.heroClass);
