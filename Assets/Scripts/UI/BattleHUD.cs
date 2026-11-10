@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,6 +40,7 @@ public class BattleHUD : MonoBehaviour
 
     [Header("Áreas do Campo de Batalha (Arena)")]
     public RectTransform battlefieldArea;
+    public UnityEngine.UI.Image battlefieldBgImage;
     public RectTransform heroesFieldContainer;
     public RectTransform enemiesFieldContainer;
 
@@ -252,12 +253,9 @@ public class BattleHUD : MonoBehaviour
         rootBg.color = new Color(0.06f, 0.08f, 0.12f, 1f);
 
         // 2. Banner de Turno no Topo
-        GameObject bannerObj = CreateUIObject("TurnBanner", battleRootPanel.transform, new Vector2(0.20f, 0.92f), new Vector2(0.80f, 0.98f));
+        GameObject bannerObj = CreateUIObject("TurnBanner", battleRootPanel.transform, new Vector2(0.18f, 0.92f), new Vector2(0.80f, 0.99f));
         turnBannerText = bannerObj.AddComponent<TextMeshProUGUI>();
-        turnBannerText.fontSize = 26;
-        turnBannerText.fontStyle = FontStyles.Bold;
-        turnBannerText.alignment = TextAlignmentOptions.Center;
-        turnBannerText.color = Color.white;
+        ApplyCrispTextStyle(turnBannerText, 28f, TextAlignmentOptions.Center, true);
         turnBannerText.text = "=== ARENA DE COMBATE ===";
 
         // BotÃ£o de Acesso RÃ¡pido ao Menu da Guilda / Equipamentos (Estilo RPG Maker)
@@ -267,16 +265,19 @@ public class BattleHUD : MonoBehaviour
         });
 
         // 3. Log de Combate (Logo abaixo do banner)
-        GameObject logObj = CreateUIObject("CombatLog", battleRootPanel.transform, new Vector2(0.15f, 0.87f), new Vector2(0.85f, 0.92f));
+        GameObject logObj = CreateUIObject("CombatLog", battleRootPanel.transform, new Vector2(0.08f, 0.865f), new Vector2(0.92f, 0.92f));
         combatLogText = logObj.AddComponent<TextMeshProUGUI>();
-        combatLogText.fontSize = 18;
-        combatLogText.alignment = TextAlignmentOptions.Center;
-        combatLogText.color = Color.white;
-        combatLogText.text = "A batalha começou! Selecione seu herói para agir.";
+        ApplyCrispTextStyle(combatLogText, 20.5f, TextAlignmentOptions.Center, true);
+        combatLogText.text = "A batalha comecou! Selecione seu heroi para agir.";
 
         // 4. Área do Campo de Batalha (Arena - 70% superior)
         GameObject bfObj = CreateUIObject("BattlefieldArea", battleRootPanel.transform, new Vector2(0.02f, 0.25f), new Vector2(0.98f, 0.86f));
         battlefieldArea = bfObj.GetComponent<RectTransform>();
+        battlefieldBgImage = bfObj.AddComponent<Image>();
+        battlefieldBgImage.color = Color.white;
+        battlefieldBgImage.preserveAspect = false;
+        Sprite defaultBg = Resources.Load<Sprite>("Sprites/Backgrounds/bg_catacombs");
+        if (defaultBg != null) battlefieldBgImage.sprite = defaultBg;
 
         // Container dos Inimigos (Lado Esquerdo do Campo)
         GameObject efObj = CreateUIObject("EnemiesFieldContainer", battlefieldArea.transform, new Vector2(0.0f, 0.0f), new Vector2(0.50f, 1.0f));
@@ -299,15 +300,11 @@ public class BattleHUD : MonoBehaviour
         cbBg.color = new Color(0.15f, 0.18f, 0.25f, 0.95f);
 
         // Título do Herói Ativo nos comandos
-        GameObject cbTitleObj = CreateUIObject("CommandTitle", commandBoxPanel.transform, new Vector2(0.04f, 0.72f), new Vector2(0.96f, 0.95f));
+        GameObject cbTitleObj = CreateUIObject("CommandTitle", commandBoxPanel.transform, new Vector2(0.03f, 0.72f), new Vector2(0.97f, 0.96f));
         commandHeaderTitle = cbTitleObj.AddComponent<TextMeshProUGUI>();
-        commandHeaderTitle.fontSize = 17;
-        commandHeaderTitle.fontStyle = FontStyles.Bold;
-        commandHeaderTitle.alignment = TextAlignmentOptions.Center;
-        commandHeaderTitle.color = Color.white;
+        ApplyCrispTextStyle(commandHeaderTitle, 18.5f, TextAlignmentOptions.Center, true);
         commandHeaderTitle.text = "COMANDOS";
 
-        // Botões de Ação na Caixa de Comandos
         attackBtn = CreateButton(commandBoxPanel, "AttackBtn", "[ ATACAR ]", new Vector2(0.04f, 0.38f), new Vector2(0.48f, 0.68f), new Color(0.65f, 0.18f, 0.20f));
         attackBtn.onClick.AddListener(OnClickAttack);
 
@@ -345,11 +342,9 @@ public class BattleHUD : MonoBehaviour
         Image tmpBg = tmpObj.AddComponent<Image>();
         tmpBg.color = new Color(0.12f, 0.14f, 0.20f, 0.98f);
 
-        GameObject promptObj = CreateUIObject("TargetPrompt", targetModePanel.transform, new Vector2(0.04f, 0.55f), new Vector2(0.96f, 0.95f));
+        GameObject promptObj = CreateUIObject("TargetPrompt", targetModePanel.transform, new Vector2(0.04f, 0.54f), new Vector2(0.96f, 0.96f));
         targetModePromptText = promptObj.AddComponent<TextMeshProUGUI>();
-        targetModePromptText.fontSize = 14;
-        targetModePromptText.alignment = TextAlignmentOptions.Center;
-        targetModePromptText.color = Color.white;
+        ApplyCrispTextStyle(targetModePromptText, 16.5f, TextAlignmentOptions.Center, true);
         targetModePromptText.text = "CLIQUE NO MONSTRO NO CAMPO:";
 
         cancelTargetBtn = CreateButton(targetModePanel.transform, "CancelTargetBtn", "[ CANCELAR ]", new Vector2(0.10f, 0.08f), new Vector2(0.90f, 0.48f), new Color(0.40f, 0.40f, 0.45f));
@@ -383,42 +378,34 @@ public class BattleHUD : MonoBehaviour
         statusHeroAvatarImage.preserveAspect = true;
         statusHeroAvatarImage.raycastTarget = false;
 
-        GameObject c1TitleObj = CreateUIObject("HeroTitle", c1Obj.transform, new Vector2(0.34f, 0.60f), new Vector2(0.98f, 0.98f));
+        GameObject c1TitleObj = CreateUIObject("HeroTitle", c1Obj.transform, new Vector2(0.32f, 0.58f), new Vector2(0.99f, 0.99f));
         statusHeroTitleText = c1TitleObj.AddComponent<TextMeshProUGUI>();
-        statusHeroTitleText.fontSize = 16;
-        statusHeroTitleText.fontStyle = FontStyles.Bold;
-        statusHeroTitleText.color = Color.white;
+        ApplyCrispTextStyle(statusHeroTitleText, 18f, TextAlignmentOptions.TopLeft, true);
 
-        GameObject c1VitalsObj = CreateUIObject("HeroVitals", c1Obj.transform, new Vector2(0.34f, 0.02f), new Vector2(0.98f, 0.58f));
+        GameObject c1VitalsObj = CreateUIObject("HeroVitals", c1Obj.transform, new Vector2(0.32f, 0.01f), new Vector2(0.99f, 0.57f));
         statusVitalsText = c1VitalsObj.AddComponent<TextMeshProUGUI>();
-        statusVitalsText.fontSize = 14;
-        statusVitalsText.color = Color.white;
+        ApplyCrispTextStyle(statusVitalsText, 16f, TextAlignmentOptions.TopLeft, true);
 
-        // Coluna 2: Atributos Primários (STR, DEX, INT, VIT)
-        GameObject c2Obj = CreateUIObject("Col2_Attributes", heroStatusView.transform, new Vector2(0.34f, 0.00f), new Vector2(0.66f, 1.00f));
-        GameObject c2TextObj = CreateUIObject("AttrText", c2Obj.transform, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.98f));
+        // Coluna 2: Atributos Primarios (STR, DEX, INT, VIT)
+        GameObject c2Obj = CreateUIObject("Col2_Attributes", heroStatusView.transform, new Vector2(0.35f, 0.00f), new Vector2(0.67f, 1.00f));
+        GameObject c2TextObj = CreateUIObject("AttrText", c2Obj.transform, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.98f));
         statusAttributesText = c2TextObj.AddComponent<TextMeshProUGUI>();
-        statusAttributesText.fontSize = 15;
-        statusAttributesText.color = Color.white;
+        ApplyCrispTextStyle(statusAttributesText, 17f, TextAlignmentOptions.TopLeft, true);
 
-        // Coluna 3: Estatísticas de Combate Derivadas (ATQ, DEF, MATQ, VEL, CRIT)
-        GameObject c3Obj = CreateUIObject("Col3_CombatStats", heroStatusView.transform, new Vector2(0.67f, 0.00f), new Vector2(1.00f, 1.00f));
-        GameObject c3TextObj = CreateUIObject("StatsText", c3Obj.transform, new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.98f));
+        // Coluna 3: Estatisticas de Combate Derivadas (ATQ, DEF, MATQ, VEL, CRIT)
+        GameObject c3Obj = CreateUIObject("Col3_CombatStats", heroStatusView.transform, new Vector2(0.68f, 0.00f), new Vector2(1.00f, 1.00f));
+        GameObject c3TextObj = CreateUIObject("StatsText", c3Obj.transform, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.98f));
         statusCombatStatsText = c3TextObj.AddComponent<TextMeshProUGUI>();
-        statusCombatStatsText.fontSize = 15;
-        statusCombatStatsText.color = Color.white;
+        ApplyCrispTextStyle(statusCombatStatsText, 17f, TextAlignmentOptions.TopLeft, true);
 
-        // Visualização 2: Lista de Ataques e Habilidades
+        // Visualizacao 2: Lista de Ataques e Habilidades
         heroAttacksView = CreateUIObject("HeroAttacksView", heroDetailsPanel.transform, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.78f));
 
-        // Topo da aba de ataques: Título e Botão Voltar
-        GameObject atkTopObj = CreateUIObject("AttacksHeader", heroAttacksView.transform, new Vector2(0.00f, 0.74f), new Vector2(1.00f, 1.00f));
+        // Topo da aba de ataques: Titulo e Botao Voltar
+        GameObject atkTopObj = CreateUIObject("AttacksHeader", heroAttacksView.transform, new Vector2(0.00f, 0.73f), new Vector2(1.00f, 1.00f));
         GameObject atkTitleObj = CreateUIObject("AttacksTitle", atkTopObj.transform, new Vector2(0.01f, 0.00f), new Vector2(0.70f, 1.00f));
         attacksViewTitle = atkTitleObj.AddComponent<TextMeshProUGUI>();
-        attacksViewTitle.fontSize = 14;
-        attacksViewTitle.fontStyle = FontStyles.Bold;
-        attacksViewTitle.color = Color.white;
-        attacksViewTitle.alignment = TextAlignmentOptions.MidlineLeft;
+        ApplyCrispTextStyle(attacksViewTitle, 17f, TextAlignmentOptions.MidlineLeft, true);
         attacksViewTitle.text = "ESCOLHA O ATAQUE OU HABILIDADE:";
 
         backToStatusBtn = CreateButton(atkTopObj.transform, "BackToStatusBtn", "[ VOLTAR AOS STATUS ]", new Vector2(0.72f, 0.05f), new Vector2(0.99f, 0.95f), new Color(0.35f, 0.38f, 0.45f));
@@ -577,15 +564,20 @@ public class BattleHUD : MonoBehaviour
         foreach (Transform child in heroTabsContainer) Destroy(child.gameObject);
 
         heroFieldDisplays.Clear();
+
+        bool isBossBattle = enemies.Exists(e => e.data != null && e.data.isBoss);
+        RoomType currentRoomType = isBossBattle ? RoomType.Boss : RoomType.Combat;
+        int currentFloor = DungeonManager.Instance != null ? DungeonManager.Instance.currentFloor : 1;
+        UpdateDungeonBackground(currentRoomType, currentFloor);
         heroTabDisplays.Clear();
         enemyFieldDisplays.Clear();
 
-        // 1. Posiciona os Heróis na Arena em Escada (Lado Direito - Estilo Final Fantasy Clássico)
+        // 1. Posicionamento TÃ¡tico dos HerÃ³is no Piso de Pedra (Lado Direito - 4 Colunas Distintas Sem SobreposiÃ§Ã£o)
         float[,] heroPosRatios = new float[,] {
-            { 0.48f, 0.72f },
-            { 0.38f, 0.48f },
-            { 0.28f, 0.24f },
-            { 0.18f, 0.01f }
+            { 0.04f, 0.04f }, // HerÃ³i 0 (Vanguarda 1 - Frente Esquerda)
+            { 0.28f, 0.13f }, // HerÃ³i 1 (Vanguarda 2 - Meio Esquerda)
+            { 0.52f, 0.04f }, // HerÃ³i 2 (Retaguarda 1 - Frente Direita)
+            { 0.76f, 0.13f }  // HerÃ³i 3 (Retaguarda 2 - Fundo Direita)
         };
 
         for (int i = 0; i < heroes.Count; i++)
@@ -602,23 +594,24 @@ public class BattleHUD : MonoBehaviour
             heroTabDisplays.Add(htd);
         }
 
-        // 2. Posiciona os Monstros na Arena (Lado Esquerdo - 2 a 6 Monstros)
+        // Ordena profundidade (Z-order) dos herÃ³is: quem estÃ¡ mais atrÃ¡s (maior Y) Ã© desenhado primeiro
+        RebuildHeroZOrder();
+
+        // 2. Posicionamento TÃ¡tico dos Monstros no Piso de Pedra (Lado Esquerdo - FormaÃ§Ã£o em V / Zigzag no ChÃ£o)
         if (enemies.Count == 1 && enemies[0].data.isBoss)
         {
-            EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[0], 0, 0.25f, 0.30f, 320, 160, true);
+            EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[0], 0, 0.30f, 0.05f, 320, 160, true);
             enemyFieldDisplays.Add(efd);
         }
         else
         {
-            // Grade de 2 colunas x 3 linhas
-            // Coluna da Frente (Direita): X 0.52 | Coluna de Trás (Esquerda): X 0.08
             float[,] enemySlotPositions = new float[,] {
-                { 0.52f, 0.68f }, // Slot 0: Frente Topo
-                { 0.52f, 0.36f }, // Slot 1: Frente Meio
-                { 0.52f, 0.04f }, // Slot 2: Frente Baixo
-                { 0.08f, 0.68f }, // Slot 3: Trás Topo
-                { 0.08f, 0.36f }, // Slot 4: Trás Meio
-                { 0.08f, 0.04f }  // Slot 5: Trás Baixo
+                { 0.42f, 0.04f }, // Slot 0: Frente Centro
+                { 0.10f, 0.12f }, // Slot 1: Meio Esquerda
+                { 0.68f, 0.12f }, // Slot 2: Meio Direita
+                { 0.16f, 0.02f }, // Slot 3: Frente Esquerda
+                { 0.74f, 0.02f }, // Slot 4: Frente Direita
+                { 0.38f, 0.16f }  // Slot 5: Recuado Centro
             };
 
             for (int i = 0; i < enemies.Count; i++)
@@ -630,29 +623,96 @@ public class BattleHUD : MonoBehaviour
                 EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[i], i, posX, posY, 220, 95, false);
                 enemyFieldDisplays.Add(efd);
             }
+
+            RebuildEnemyZOrder();
         }
 
         UpdateAllStats();
     }
 
+    private void RebuildHeroZOrder()
+    {
+        var sorted = new List<HeroFieldDisplay>(heroFieldDisplays);
+        sorted.Sort((a, b) => b.posY.CompareTo(a.posY)); // Maior Y (fundo) primeiro, menor Y (frente) por Ãºltimo
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            sorted[i].container.transform.SetSiblingIndex(i);
+        }
+    }
+
+    private void RebuildEnemyZOrder()
+    {
+        var sorted = new List<EnemyFieldDisplay>(enemyFieldDisplays);
+        sorted.Sort((a, b) => b.posY.CompareTo(a.posY)); // Maior Y (fundo) primeiro, menor Y (frente) por Ãºltimo
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            sorted[i].container.transform.SetSiblingIndex(i);
+        }
+    }
+
+    private static Sprite _proceduralOvalShadowSprite;
+    private static Sprite GetOrCreateOvalShadowSprite()
+    {
+        if (_proceduralOvalShadowSprite != null) return _proceduralOvalShadowSprite;
+
+        int w = 128;
+        int h = 64;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        Color[] pixels = new Color[w * h];
+        float cx = (w - 1) * 0.5f;
+        float cy = (h - 1) * 0.5f;
+        float rx = w * 0.46f;
+        float ry = h * 0.42f;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float dx = (x - cx) / rx;
+                float dy = (y - cy) / ry;
+                float distSq = dx * dx + dy * dy;
+                if (distSq >= 1f)
+                {
+                    pixels[y * w + x] = Color.clear;
+                }
+                else
+                {
+                    float falloff = 1f - distSq;
+                    float alpha = falloff * falloff;
+                    pixels[y * w + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+        _proceduralOvalShadowSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 64f);
+        return _proceduralOvalShadowSprite;
+    }
+
     private HeroFieldDisplay CreateHeroFieldEntity(HeroInstance hero, int index, float xRatio, float yRatio)
     {
-        GameObject heroObj = CreateUIObject($"HeroField_{hero.heroName}", heroesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + 0.48f, yRatio + 0.24f));
+        // Escala de perspectiva sutil: quem estÃ¡ mais atrÃ¡s no piso Ã© ligeiramente menor
+        float depthScale = yRatio > 0.08f ? 0.94f : 1.0f;
+        float wRatio = 0.20f * depthScale;
+        float hRatio = 0.27f * depthScale;
+
+        GameObject heroObj = CreateUIObject($"HeroField_{hero.heroName}_{index}", heroesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + wRatio, yRatio + hRatio));
         Image bg = heroObj.AddComponent<Image>();
-        bg.color = new Color(0.14f, 0.18f, 0.26f, 0.95f);
+        bg.color = Color.clear; // Sempre 100% invisÃ­vel (nunca desenha retÃ¢ngulo)
 
-        Button btn = heroObj.AddComponent<Button>();
-        btn.targetGraphic = bg;
-        ConfigureButtonColors(btn, new Color(0.14f, 0.18f, 0.26f, 0.95f), new Color(0.25f, 0.35f, 0.55f));
-        btn.onClick.AddListener(() => {
-            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
-            {
-                BattleManager.Instance.SelectHero(hero);
-            }
-        });
+        // Sombra oval suave gerada proceduralmente sob os pÃ©s do herÃ³i
+        GameObject shadowObj = CreateUIObject("Shadow", heroObj.transform, new Vector2(0.08f, -0.02f), new Vector2(0.92f, 0.20f));
+        Image shadowImg = shadowObj.AddComponent<Image>();
+        shadowImg.sprite = GetOrCreateOvalShadowSprite();
+        shadowImg.color = new Color(0f, 0f, 0f, 0.72f);
+        shadowImg.raycastTarget = false;
 
-        // Avatar do Herói (visão lateral / arte em pixel)
-        GameObject avatarObj = CreateUIObject("Avatar", heroObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.36f, 0.94f));
+        // Avatar do HerÃ³i (visÃ£o lateral apoiada diretamente sobre a sombra no piso)
+        GameObject avatarObj = CreateUIObject("Avatar", heroObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.98f, 0.92f));
         Image avatarImg = avatarObj.AddComponent<Image>();
         avatarImg.preserveAspect = true;
         avatarImg.raycastTarget = false;
@@ -667,30 +727,72 @@ public class BattleHUD : MonoBehaviour
             avatarImg.color = Color.clear;
         }
 
-        // Nome e Estrelas
-        GameObject nameObj = CreateUIObject("Name", heroObj.transform, new Vector2(0.38f, 0.52f), new Vector2(0.98f, 0.95f));
+        Button btn = heroObj.AddComponent<Button>();
+        btn.targetGraphic = avatarImg;
+        ConfigureButtonColors(btn, Color.white, new Color(0.85f, 0.92f, 1f, 1f));
+        btn.onClick.AddListener(() => {
+            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
+            {
+                BattleManager.Instance.SelectHero(hero);
+            }
+        });
+
+        // === BARRA COMPACTA DE NOME + HP + MP ACIMA DO HERÃ“I (Sem invadir o chapÃ©u/cabeÃ§a) ===
+        GameObject hudContainer = CreateUIObject("OverheadHUD", heroObj.transform, new Vector2(-0.15f, 0.93f), new Vector2(1.15f, 1.32f));
+
+        // Nome curto no topo com contorno e sombra nitida
+        GameObject nameObj = CreateUIObject("Name", hudContainer.transform, new Vector2(0f, 0.54f), new Vector2(1f, 1f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
-        string starBadge = hero.isGoldStar ? $"[{hero.currentStars}* Ouro]" : $"[{hero.currentStars}*]";
-        nameTmp.text = $"{starBadge} <b>{hero.heroName}</b>\n<size=12>[{hero.heroClass}]</size>";
-        nameTmp.fontSize = 15;
-        nameTmp.alignment = TextAlignmentOptions.Left;
-        nameTmp.color = Color.white;
+        string starBadge = string.Format("<color=#ffd166>[{0}*]</color>", hero.currentStars);
+        string shortHeroName = hero.heroName.Split(',')[0].Trim();
+        ApplyCrispTextStyle(nameTmp, 15f, TextAlignmentOptions.Center, true);
+        nameTmp.overflowMode = TextOverflowModes.Overflow;
+        nameTmp.text = string.Format("{0} <b>{1}</b>", starBadge, shortHeroName);
         nameTmp.raycastTarget = false;
 
-        // Barra de Vida / Status
-        GameObject hpObj = CreateUIObject("HPText", heroObj.transform, new Vector2(0.38f, 0.08f), new Vector2(0.98f, 0.48f));
+        // Fundo da Barra de HP com borda escura
+        GameObject hpBarBgObj = CreateUIObject("HPBarBg", hudContainer.transform, new Vector2(0.05f, 0.16f), new Vector2(0.95f, 0.53f));
+        Image hpBarBg = hpBarBgObj.AddComponent<Image>();
+        hpBarBg.color = new Color(0.04f, 0.06f, 0.09f, 0.95f);
+        hpBarBg.raycastTarget = false;
+        Outline hpOutline = hpBarBgObj.AddComponent<Outline>();
+        hpOutline.effectColor = new Color(0f, 0f, 0f, 0.92f);
+        hpOutline.effectDistance = new Vector2(1.2f, -1.2f);
+
+        // Preenchimento Verde da Barra de HP
+        GameObject hpFillObj = CreateUIObject("HPFill", hpBarBgObj.transform, new Vector2(0.02f, 0.10f), new Vector2(0.98f, 0.90f));
+        Image hpFill = hpFillObj.AddComponent<Image>();
+        hpFill.color = new Color(0.18f, 0.76f, 0.34f, 0.98f);
+        hpFill.raycastTarget = false;
+
+        // Texto numerico nitido dentro da barra de HP
+        GameObject hpObj = CreateUIObject("HPText", hpBarBgObj.transform, Vector2.zero, Vector2.one);
         TextMeshProUGUI hpTmp = hpObj.AddComponent<TextMeshProUGUI>();
-        hpTmp.fontSize = 13;
-        hpTmp.color = Color.white;
+        ApplyCrispTextStyle(hpTmp, 13.5f, TextAlignmentOptions.Center, true);
+        hpTmp.overflowMode = TextOverflowModes.Overflow;
         hpTmp.raycastTarget = false;
+
+        // Fundo da Barra de MP logo abaixo do HP
+        GameObject mpBarBgObj = CreateUIObject("MPBarBg", hudContainer.transform, new Vector2(0.05f, 0.01f), new Vector2(0.95f, 0.15f));
+        Image mpBarBg = mpBarBgObj.AddComponent<Image>();
+        mpBarBg.color = new Color(0.04f, 0.06f, 0.11f, 0.95f);
+        mpBarBg.raycastTarget = false;
+
+        GameObject mpFillObj = CreateUIObject("MPFill", mpBarBgObj.transform, Vector2.zero, Vector2.one);
+        Image mpFill = mpFillObj.AddComponent<Image>();
+        mpFill.color = new Color(0.25f, 0.58f, 0.98f, 0.95f);
+        mpFill.raycastTarget = false;
 
         return new HeroFieldDisplay {
             hero = hero,
             container = heroObj,
-            cardImage = bg,
+            cardImage = shadowImg, // Aponta para a sombra oval no chÃ£o (nunca um retÃ¢ngulo!)
             avatarImage = avatarImg,
             nameText = nameTmp,
-            hpText = hpTmp
+            hpText = hpTmp,
+            hpFillImage = hpFill,
+            mpFillImage = mpFill,
+            posY = yRatio
         };
     }
 
@@ -712,10 +814,7 @@ public class BattleHUD : MonoBehaviour
 
         GameObject txtObj = CreateUIObject("TabText", tabObj.transform, Vector2.zero, Vector2.one);
         TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
-        tmp.fontSize = 14;
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
+        ApplyCrispTextStyle(tmp, 16.5f, TextAlignmentOptions.Center, true);
         tmp.raycastTarget = false;
 
         return new HeroTabDisplay {
@@ -729,24 +828,23 @@ public class BattleHUD : MonoBehaviour
 
     private EnemyFieldDisplay CreateEnemyFieldEntity(EnemyInstance enemy, int index, float xRatio, float yRatio, float w, float h, bool isBoss)
     {
-        GameObject enemyObj = CreateUIObject($"EnemyField_{enemy.enemyName}_{index}", enemiesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + 0.40f, yRatio + 0.28f));
+        float depthScale = (!isBoss && yRatio > 0.08f) ? 0.93f : 1.0f;
+        float widthRatio = (isBoss ? 0.30f : 0.19f) * depthScale;
+        float heightRatio = (isBoss ? 0.34f : 0.26f) * depthScale;
+
+        GameObject enemyObj = CreateUIObject($"EnemyField_{enemy.enemyName}_{index}", enemiesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + widthRatio, yRatio + heightRatio));
         Image bg = enemyObj.AddComponent<Image>();
-        bg.color = isBoss ? new Color(0.48f, 0.12f, 0.15f, 0.98f) : new Color(0.32f, 0.12f, 0.15f, 0.95f);
+        bg.color = Color.clear; // Sempre 100% invisÃ­vel
 
-        Button btn = enemyObj.AddComponent<Button>();
-        btn.targetGraphic = bg;
-        ConfigureButtonColors(btn, bg.color, new Color(0.65f, 0.22f, 0.26f));
-
-        int targetIdx = index;
-        btn.onClick.AddListener(() => {
-            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
-            {
-                ExecuteAttackOnTarget(targetIdx);
-            }
-        });
+        // Sombra oval suave gerada proceduralmente sob os pÃ©s do monstro
+        GameObject shadowObj = CreateUIObject("Shadow", enemyObj.transform, new Vector2(0.08f, -0.02f), new Vector2(0.92f, 0.20f));
+        Image shadowImg = shadowObj.AddComponent<Image>();
+        shadowImg.sprite = GetOrCreateOvalShadowSprite();
+        shadowImg.color = new Color(0f, 0f, 0f, 0.72f);
+        shadowImg.raycastTarget = false;
 
         // Avatar do Monstro / Chefe
-        GameObject avatarObj = CreateUIObject("Avatar", enemyObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.36f, 0.94f));
+        GameObject avatarObj = CreateUIObject("Avatar", enemyObj.transform, new Vector2(0.02f, 0.06f), new Vector2(0.98f, 0.92f));
         Image avatarImg = avatarObj.AddComponent<Image>();
         avatarImg.preserveAspect = true;
         avatarImg.raycastTarget = false;
@@ -761,48 +859,77 @@ public class BattleHUD : MonoBehaviour
             avatarImg.color = Color.clear;
         }
 
-        // Nome do Inimigo
-        GameObject nameObj = CreateUIObject("Name", enemyObj.transform, new Vector2(0.38f, 0.50f), new Vector2(0.98f, 0.95f));
+        Button btn = enemyObj.AddComponent<Button>();
+        btn.targetGraphic = avatarImg;
+        ConfigureButtonColors(btn, Color.white, new Color(1f, 0.78f, 0.78f, 1f));
+
+        int targetIdx = index;
+        btn.onClick.AddListener(() => {
+            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
+            {
+                ExecuteAttackOnTarget(targetIdx);
+            }
+        });
+
+        // === BARRA COMPACTA DE NOME + HP ACIMA DO MONSTRO ===
+        GameObject hudContainer = CreateUIObject("OverheadHUD", enemyObj.transform, new Vector2(-0.15f, 0.93f), new Vector2(1.15f, 1.30f));
+
+        GameObject nameObj = CreateUIObject("Name", hudContainer.transform, new Vector2(0f, 0.50f), new Vector2(1f, 1f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
-        nameTmp.text = isBoss ? $"[CHEFE] <b>{enemy.enemyName}</b>" : $"<b>{enemy.enemyName}</b>";
-        nameTmp.fontSize = isBoss ? 16 : 14;
-        nameTmp.alignment = TextAlignmentOptions.Left;
-        nameTmp.color = Color.white;
+        ApplyCrispTextStyle(nameTmp, isBoss ? 17f : 15f, TextAlignmentOptions.Center, true);
+        nameTmp.overflowMode = TextOverflowModes.Overflow;
+        nameTmp.text = isBoss ? string.Format("<color=#ffd166>[CHEFE]</color> <b>{0}</b>", enemy.enemyName) : string.Format("<b>{0}</b>", enemy.enemyName);
         nameTmp.raycastTarget = false;
 
-        // Barra de Vida
-        GameObject hpObj = CreateUIObject("HPText", enemyObj.transform, new Vector2(0.38f, 0.08f), new Vector2(0.98f, 0.48f));
+        GameObject hpBarBgObj = CreateUIObject("HPBarBg", hudContainer.transform, new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.48f));
+        Image hpBarBg = hpBarBgObj.AddComponent<Image>();
+        hpBarBg.color = new Color(0.07f, 0.04f, 0.05f, 0.95f);
+        hpBarBg.raycastTarget = false;
+        Outline hpOutline = hpBarBgObj.AddComponent<Outline>();
+        hpOutline.effectColor = new Color(0f, 0f, 0f, 0.92f);
+        hpOutline.effectDistance = new Vector2(1.2f, -1.2f);
+
+        GameObject hpFillObj = CreateUIObject("HPFill", hpBarBgObj.transform, new Vector2(0.02f, 0.10f), new Vector2(0.98f, 0.90f));
+        Image hpFill = hpFillObj.AddComponent<Image>();
+        hpFill.color = new Color(0.86f, 0.18f, 0.20f, 0.98f);
+        hpFill.raycastTarget = false;
+
+        GameObject hpObj = CreateUIObject("HPText", hpBarBgObj.transform, Vector2.zero, Vector2.one);
         TextMeshProUGUI hpTmp = hpObj.AddComponent<TextMeshProUGUI>();
-        hpTmp.fontSize = isBoss ? 15 : 13;
-        hpTmp.color = Color.white;
+        ApplyCrispTextStyle(hpTmp, 13.5f, TextAlignmentOptions.Center, true);
+        hpTmp.overflowMode = TextOverflowModes.Overflow;
         hpTmp.raycastTarget = false;
 
         return new EnemyFieldDisplay {
             enemy = enemy,
             index = index,
             container = enemyObj,
-            cardImage = bg,
+            cardImage = shadowImg, // Aponta para a sombra oval no chÃ£o
             avatarImage = avatarImg,
             nameText = nameTmp,
-            hpText = hpTmp
+            hpText = hpTmp,
+            hpFillImage = hpFill,
+            posY = yRatio
         };
     }
 
-    /// <summary>
-    /// Atualiza as estatísticas de vida, mana, poções e indicadores visuais de todos na tela.
-    /// </summary>
     public void UpdateAllStats()
     {
-        // 1. Heróis no Campo e Abas Superiores
+        // 1. HerÃ³is no Campo e Abas Superiores
         for (int i = 0; i < heroFieldDisplays.Count; i++)
         {
             var hfd = heroFieldDisplays[i];
             HeroInstance h = hfd.hero;
 
             hfd.hpText.color = Color.white;
+            float hpRatio = Mathf.Clamp01((float)h.currentHP / Mathf.Max(1, h.GetMaxHP()));
+            float mpRatio = Mathf.Clamp01((float)h.currentMP / Mathf.Max(1, h.GetMaxMP()));
+            if (hfd.hpFillImage != null) hfd.hpFillImage.rectTransform.anchorMax = new Vector2(0.02f + 0.96f * hpRatio, 0.88f);
+            if (hfd.mpFillImage != null) hfd.mpFillImage.rectTransform.anchorMax = new Vector2(mpRatio, 1f);
+
             if (h.IsAlive)
             {
-                hfd.hpText.text = $"HP: {h.currentHP}/{h.GetMaxHP()} | MP: {h.currentMP}/{h.GetMaxMP()}";
+                hfd.hpText.text = $"{h.currentHP}/{h.GetMaxHP()}";
                 if (hfd.avatarImage != null)
                 {
                     if (h.heroClass == HeroClassType.Knight && hfd.activeAnimRoutine == null)
@@ -827,11 +954,11 @@ public class BattleHUD : MonoBehaviour
             }
             else
             {
-                hfd.hpText.text = "[CAÍDO]";
-                hfd.cardImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                hfd.hpText.text = "CAÃDO";
+                hfd.cardImage.color = new Color(0f, 0f, 0f, 0.35f);
                 if (hfd.avatarImage != null)
                 {
-                    hfd.avatarImage.color = new Color(0.7f, 0.7f, 0.7f, 0.85f);
+                    hfd.avatarImage.color = new Color(0.55f, 0.55f, 0.55f, 0.80f);
                     if (h.heroClass == HeroClassType.Knight && knightDefeat2 != null)
                     {
                         hfd.avatarImage.sprite = knightDefeat2;
@@ -865,7 +992,7 @@ public class BattleHUD : MonoBehaviour
             }
             else
             {
-                htd.tabText.text = $"<b>{shortName}</b> [CAÍDO]";
+                htd.tabText.text = $"<b>{shortName}</b> [CAÃDO]";
                 htd.tabBg.color = new Color(0.2f, 0.15f, 0.15f, 0.5f);
             }
         }
@@ -877,26 +1004,55 @@ public class BattleHUD : MonoBehaviour
             EnemyInstance e = efd.enemy;
 
             efd.hpText.color = Color.white;
+            float hpRatio = Mathf.Clamp01((float)e.currentHP / Mathf.Max(1, e.maxHP));
+            if (efd.hpFillImage != null) efd.hpFillImage.rectTransform.anchorMax = new Vector2(0.02f + 0.96f * hpRatio, 0.88f);
+
             if (e.IsAlive)
             {
-                efd.hpText.text = $"HP: {e.currentHP}/{e.maxHP}";
+                efd.hpText.text = $"{e.currentHP}/{e.maxHP}";
                 if (efd.avatarImage != null) efd.avatarImage.color = Color.white;
             }
             else
             {
-                efd.hpText.text = "[DERROTADO]";
-                efd.cardImage.color = new Color(0.15f, 0.15f, 0.15f, 0.4f);
+                efd.hpText.text = "DERROTADO";
+                efd.cardImage.color = new Color(0f, 0f, 0f, 0.25f);
                 if (efd.avatarImage != null) efd.avatarImage.color = new Color(0.25f, 0.25f, 0.25f, 0.3f);
             }
         }
 
-        // 3. Atualiza os dados detalhados do herói atualmente selecionado
+        // 3. Atualiza os dados detalhados do herÃ³i atualmente selecionado
         RefreshHeroStatusPanel(BattleManager.Instance != null ? BattleManager.Instance.selectedHero : null);
     }
 
-    /// <summary>
-    /// Atualiza as 3 colunas de status (Vitais, Atributos Primários e Estatísticas de Combate) do herói ativo com texto branco.
-    /// </summary>
+    public void UpdateDungeonBackground(RoomType roomType, int floorNumber)
+    {
+        if (battlefieldBgImage == null) return;
+
+        string spritePath;
+        switch (roomType)
+        {
+            case RoomType.Boss:
+                spritePath = "Sprites/Backgrounds/bg_boss";
+                break;
+            case RoomType.Treasure:
+                spritePath = "Sprites/Backgrounds/bg_treasure";
+                break;
+            case RoomType.Rest:
+                spritePath = "Sprites/Backgrounds/bg_rest";
+                break;
+            default:
+                spritePath = "Sprites/Backgrounds/bg_catacombs";
+                break;
+        }
+
+        Sprite bgSprite = Resources.Load<Sprite>(spritePath);
+        if (bgSprite != null)
+        {
+            battlefieldBgImage.sprite = bgSprite;
+            battlefieldBgImage.color = Color.white;
+        }
+    }
+
     public void RefreshHeroStatusPanel(HeroInstance hero)
     {
         if (statusHeroTitleText == null) return;
@@ -941,45 +1097,46 @@ public class BattleHUD : MonoBehaviour
             hero.InitializeDefaultSkills();
         }
 
-        string starBadge = hero.isGoldStar ? $"[{hero.currentStars}* Ouro]" : $"[{hero.currentStars}*]";
-        statusHeroTitleText.text = $"{starBadge} <b>{hero.heroName}</b> (Nv. {hero.level})\nClasse: {hero.heroClass}";
+        string starBadge = hero.isGoldStar ? string.Format("[{0}* Ouro]", hero.currentStars) : string.Format("[{0}*]", hero.currentStars);
+        statusHeroTitleText.text = string.Format("<color=#ffd166>{0}</color> <b>{1}</b> (Nv. {2})\n<color=#a8dadc>Classe: <b>{3}</b></color>",
+            starBadge, hero.heroName, hero.level, ItemData.FormatClassName(hero.heroClass));
 
         if (hero.IsAlive)
         {
             string stateTag;
             if (BattleManager.Instance.IsHeroDefending(hero))
-                stateTag = "[EM DEFESA]";
+                stateTag = "<color=#4ea8de>[EM DEFESA]</color>";
             else if (hero.hasActedThisRound)
-                stateTag = "[JÁ AGIU]";
+                stateTag = "<color=#cbd5e1>[JA AGIU]</color>";
             else
-                stateTag = "[PRONTO PARA AGIR]";
+                stateTag = "<color=#2ecc71>[PRONTO PARA AGIR]</color>";
 
             statusVitalsText.text =
-                $"<b>HP:</b> {hero.currentHP} / {hero.GetMaxHP()}\n" +
-                $"<b>MP:</b> {hero.currentMP} / {hero.GetMaxMP()}\n" +
-                $"<b>Poções de Cura:</b> {hero.healingPotions}/6\n" +
-                $"<b>Estado:</b> {stateTag}";
+                string.Format("<b>HP:</b> <color=#2ecc71><b>{0} / {1}</b></color>\n", hero.currentHP, hero.GetMaxHP()) +
+                string.Format("<b>MP:</b> <color=#4cc9f0><b>{0} / {1}</b></color>\n", hero.currentMP, hero.GetMaxMP()) +
+                string.Format("<b>Pocoes:</b> <color=#ffd166><b>{0} / 6</b></color>\n", hero.healingPotions) +
+                string.Format("<b>Estado:</b> <b>{0}</b>", stateTag);
 
             HeroAttributes attrs = hero.GetCurrentAttributes();
             string freePointsStr = hero.unallocatedAttributePoints > 0
-                ? $"\n<b>Pontos Livres:</b> +{hero.unallocatedAttributePoints}"
+                ? string.Format("\n<color=#2ecc71><b>Pontos Livres: +{0}</b></color>", hero.unallocatedAttributePoints)
                 : "";
 
             statusAttributesText.text =
-                "<b>ATRIBUTOS PRIMÁRIOS</b>\n" +
-                $"FORÇA (STR): <b>{attrs.strength}</b>\n" +
-                $"DESTREZA (DEX): <b>{attrs.dexterity}</b>\n" +
-                $"INTELIGÊNCIA (INT): <b>{attrs.intelligence}</b>\n" +
-                $"VITALIDADE (VIT): <b>{attrs.vitality}</b>" +
+                "<color=#ffd166><b>ATRIBUTOS PRIMARIOS</b></color>\n" +
+                string.Format("FORCA (STR): <color=#ffd166><b>{0}</b></color>\n", attrs.strength) +
+                string.Format("DESTREZA (DEX): <color=#ffd166><b>{0}</b></color>\n", attrs.dexterity) +
+                string.Format("INTELIGENCIA (INT): <color=#ffd166><b>{0}</b></color>\n", attrs.intelligence) +
+                string.Format("VITALIDADE (VIT): <color=#ffd166><b>{0}</b></color>", attrs.vitality) +
                 freePointsStr;
 
             statusCombatStatsText.text =
-                "<b>ESTATÍSTICAS DE COMBATE</b>\n" +
-                $"ATQ FÍSICO: <b>{hero.GetPhysicalAttack()}</b>\n" +
-                $"DEF FÍSICA: <b>{hero.GetPhysicalDefense()}</b>\n" +
-                $"ATQ MÁGICO: <b>{hero.GetMagicAttack()}</b>\n" +
-                $"VELOCIDADE: <b>{hero.GetSpeed()}</b>\n" +
-                $"TAXA CRÍTICA: <b>{hero.GetCritRate():F1}%</b>";
+                "<color=#ffd166><b>ESTATISTICAS DE COMBATE</b></color>\n" +
+                string.Format("ATQ FISICO: <color=#ff6b6b><b>{0}</b></color>\n", hero.GetPhysicalAttack()) +
+                string.Format("DEF FISICA: <color=#4ea8de><b>{0}</b></color>\n", hero.GetPhysicalDefense()) +
+                string.Format("ATQ MAGICO: <color=#c77dff><b>{0}</b></color>\n", hero.GetMagicAttack()) +
+                string.Format("VELOCIDADE: <color=#2ecc71><b>{0}</b></color>\n", hero.GetSpeed()) +
+                string.Format("TAXA CRITICA: <color=#ffd166><b>{0:F1}%</b></color>", hero.GetCritRate());
         }
         else
         {
@@ -1054,38 +1211,30 @@ public class BattleHUD : MonoBehaviour
         });
 
         // TÃ­tulo / Nome da Habilidade
-        GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.04f, 0.65f), new Vector2(0.96f, 0.96f));
+        GameObject titleObj = CreateUIObject("Title", cardObj.transform, new Vector2(0.04f, 0.66f), new Vector2(0.96f, 0.97f));
         TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
-        titleTmp.fontSize = 15;
-        titleTmp.fontStyle = FontStyles.Bold;
-        titleTmp.alignment = TextAlignmentOptions.Center;
-        titleTmp.color = Color.white;
-        titleTmp.text = $"<b>{skill.skillName}</b>";
+        ApplyCrispTextStyle(titleTmp, 18f, TextAlignmentOptions.Center, true);
+        titleTmp.text = string.Format("<color=#ffd166><b>{0}</b></color>", skill.skillName);
         titleTmp.raycastTarget = false;
 
-        // Custo e Tipo
-        GameObject costObj = CreateUIObject("Cost", cardObj.transform, new Vector2(0.04f, 0.38f), new Vector2(0.96f, 0.65f));
+        GameObject costObj = CreateUIObject("Cost", cardObj.transform, new Vector2(0.04f, 0.38f), new Vector2(0.96f, 0.66f));
         TextMeshProUGUI costTmp = costObj.AddComponent<TextMeshProUGUI>();
-        costTmp.fontSize = 13;
-        costTmp.alignment = TextAlignmentOptions.Center;
-        costTmp.color = Color.white;
+        ApplyCrispTextStyle(costTmp, 15.5f, TextAlignmentOptions.Center, true);
         costTmp.raycastTarget = false;
 
-        string costStr = skill.mpCost > 0 ? $"Custo: {skill.mpCost} MP" : "Sem custo (0 MP)";
-        string typeStr = skill.isMagic ? "[Mágico]" : "[Físico]";
-        string mpWarning = hasMp ? "" : " [SEM MP]";
-        costTmp.text = $"{costStr} | {typeStr}{mpWarning}";
+        string costStr = skill.mpCost > 0 ? string.Format("<color=#4cc9f0>Custo: <b>{0} MP</b></color>", skill.mpCost) : "<color=#2ecc71>Sem custo (0 MP)</color>";
+        string typeStr = skill.isMagic ? "[Magico]" : "[Fisico]";
+        string mpWarning = hasMp ? "" : " <color=#ff6b6b>[SEM MP]</color>";
+        costTmp.text = string.Format("{0} | {1}{2}", costStr, typeStr, mpWarning);
 
-        // DescriÃ§Ã£o e Dano
-        GameObject descObj = CreateUIObject("Desc", cardObj.transform, new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.38f));
+        GameObject descObj = CreateUIObject("Desc", cardObj.transform, new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.38f));
         TextMeshProUGUI descTmp = descObj.AddComponent<TextMeshProUGUI>();
-        descTmp.fontSize = 12;
-        descTmp.alignment = TextAlignmentOptions.Center;
-        descTmp.color = Color.white;
+        ApplyCrispTextStyle(descTmp, 14.5f, TextAlignmentOptions.Center, true);
         descTmp.raycastTarget = false;
 
-        string critBonusStr = skill.critBonus > 0 ? $" (+{skill.critBonus}% Crítico)" : "";
-        descTmp.text = $"Dano: {Mathf.RoundToInt(skill.damageMultiplier * 100)}%{critBonusStr}\n<size=11>{skill.description}</size>";
+        string critBonusStr = skill.critBonus > 0 ? string.Format(" <color=#ffd166>(+{0}% Critico)</color>", skill.critBonus) : "";
+        descTmp.text = string.Format("Dano: <color=#2ecc71><b>{0}%</b></color>{1}\n<size=13.5>{2}</size>",
+            Mathf.RoundToInt(skill.damageMultiplier * 100), critBonusStr, skill.description);
     }
 
     private void OnSelectSkillToExecute(HeroSkill skill)
@@ -1174,7 +1323,7 @@ public class BattleHUD : MonoBehaviour
             if (htd.hero == hero)
             {
                 htd.tabBg.color = new Color(0.25f, 0.48f, 0.78f, 1f); // Destaque azul brilhante
-                if (hfd != null) hfd.cardImage.color = new Color(0.25f, 0.45f, 0.70f, 1f);
+                if (hfd != null) hfd.cardImage.color = new Color(0.15f, 0.75f, 1.0f, 0.85f); // Aura ciano sob os pÃ©s do herÃ³i ativo
             }
             else if (htd.hero.IsAlive)
             {
@@ -1184,9 +1333,7 @@ public class BattleHUD : MonoBehaviour
 
                 if (hfd != null)
                 {
-                    hfd.cardImage.color = htd.hero.hasActedThisRound
-                        ? new Color(0.10f, 0.12f, 0.16f, 0.85f)
-                        : new Color(0.14f, 0.18f, 0.26f, 0.95f);
+                    hfd.cardImage.color = new Color(0f, 0f, 0f, 0.72f); // Sombra oval padrÃ£o no chÃ£o
                 }
             }
         }
@@ -1255,7 +1402,7 @@ public class BattleHUD : MonoBehaviour
         {
             if (enemyFieldDisplays[i].enemy.IsAlive)
             {
-                enemyFieldDisplays[i].cardImage.color = new Color(0.75f, 0.20f, 0.25f, 1f);
+                enemyFieldDisplays[i].cardImage.color = new Color(1.0f, 0.20f, 0.22f, 0.88f); // Aura carmesim de alvo sob os pÃ©s
             }
         }
     }
@@ -1268,12 +1415,7 @@ public class BattleHUD : MonoBehaviour
         // Restaura cores originais dos monstros vivos
         for (int i = 0; i < enemyFieldDisplays.Count; i++)
         {
-            if (enemyFieldDisplays[i].enemy.IsAlive)
-            {
-                enemyFieldDisplays[i].cardImage.color = enemyFieldDisplays[i].enemy.data.isBoss 
-                    ? new Color(0.48f, 0.12f, 0.15f, 0.98f) 
-                    : new Color(0.32f, 0.12f, 0.15f, 0.95f);
-            }
+            enemyFieldDisplays[i].cardImage.color = enemyFieldDisplays[i].enemy.IsAlive ? new Color(0f, 0f, 0f, 0.72f) : new Color(0f, 0f, 0f, 0.25f);
         }
     }
 
@@ -1516,11 +1658,31 @@ public class BattleHUD : MonoBehaviour
         return obj;
     }
 
+    private void ApplyCrispTextStyle(TextMeshProUGUI tmp, float fontSize, TextAlignmentOptions alignment, bool bold = true)
+    {
+        if (tmp == null) return;
+        tmp.fontSize = fontSize;
+        if (bold) tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = alignment;
+        tmp.color = Color.white;
+        tmp.outlineWidth = 0.22f;
+        tmp.outlineColor = new Color32(0, 0, 0, 238);
+
+        Shadow sh = tmp.gameObject.GetComponent<Shadow>();
+        if (sh == null) sh = tmp.gameObject.AddComponent<Shadow>();
+        sh.effectColor = new Color(0f, 0f, 0f, 0.90f);
+        sh.effectDistance = new Vector2(1.5f, -1.5f);
+    }
+
     private Button CreateButton(Transform parent, string name, string label, Vector2 anchorMin, Vector2 anchorMax, Color bgColor)
     {
         GameObject btnObj = CreateUIObject(name, parent, anchorMin, anchorMax);
         Image img = btnObj.AddComponent<Image>();
         img.color = bgColor;
+
+        Outline btnOutline = btnObj.AddComponent<Outline>();
+        btnOutline.effectColor = new Color(0f, 0f, 0f, 0.75f);
+        btnOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         Button btn = btnObj.AddComponent<Button>();
         btn.targetGraphic = img;
@@ -1529,10 +1691,7 @@ public class BattleHUD : MonoBehaviour
         GameObject txtObj = CreateUIObject("Label", btnObj.transform, Vector2.zero, Vector2.one);
         TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = 15;
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
+        ApplyCrispTextStyle(tmp, 17.5f, TextAlignmentOptions.Center, true);
         tmp.raycastTarget = false;
 
         return btn;
@@ -2007,6 +2166,9 @@ public class BattleHUD : MonoBehaviour
         public Image avatarImage;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
+        public Image hpFillImage;
+        public Image mpFillImage;
+        public float posY;
         public Coroutine activeAnimRoutine;
     }
 
@@ -2028,5 +2190,7 @@ public class BattleHUD : MonoBehaviour
         public Image avatarImage;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
+        public Image hpFillImage;
+        public float posY;
     }
 }

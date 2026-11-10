@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 273bafe7335445b18521cb6c3e949074
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  textureType: 8
+  textureShape: 1
+  spritePixelsToUnits: 64
+  textureSettings:
+    filterMode: 1
+  platformSettings:
+  - buildTarget: DefaultTexturePlatform
+    maxTextureSize: 256
+    textureFormat: -1
