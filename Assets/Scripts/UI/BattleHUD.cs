@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -525,19 +525,10 @@ public class BattleHUD : MonoBehaviour
         defTitleTmp.alignment = TextAlignmentOptions.Center;
         defTitleTmp.color = Color.white;
 
-        restartFloorBtn = CreateButton(defeatPanel.transform, "RestartFloorBtn", "[ REINICIAR ANDAR ]", new Vector2(0.25f, 0.15f), new Vector2(0.75f, 0.45f), new Color(0.75f, 0.20f, 0.25f));
+        restartFloorBtn = CreateButton(defeatPanel.transform, "RestartFloorBtn", "[ RETORNAR À SEDE DA GUILDA ]", new Vector2(0.18f, 0.15f), new Vector2(0.82f, 0.45f), new Color(0.20f, 0.46f, 0.74f));
         restartFloorBtn.onClick.AddListener(() => {
             defeatPanel.SetActive(false);
-            if (PartyManager.Instance != null)
-            {
-                foreach (var h in PartyManager.Instance.activeParty)
-                {
-                    h.currentHP = h.GetMaxHP();
-                    h.healingPotions = 6;
-                }
-            }
-            if (DungeonManager.Instance != null)
-                DungeonManager.Instance.StartFloor(DungeonManager.Instance.currentFloor);
+            OnClickRetreatFromDungeon();
         });
         defeatPanel.SetActive(false);
     }
@@ -1484,7 +1475,8 @@ public class BattleHUD : MonoBehaviour
         if (victorySummaryText != null)
         {
             victorySummaryText.color = Color.white;
-            victorySummaryText.text = $"<b>Recompensas da Câmara:</b>\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}{levelUpNotice}";
+            string autoSaveTag = $"\n<size=16><color=#2ecc71>[Progresso e Deposito da Guilda salvos automaticamente no Slot {SaveSystem.CurrentActiveSlot}!]</color></size>";
+            victorySummaryText.text = $"<b>Recompensas da Câmara:</b>\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}{levelUpNotice}{autoSaveTag}";
         }
     }
 
@@ -1637,9 +1629,24 @@ public class BattleHUD : MonoBehaviour
 
     public void OnClickRetreatFromDungeon()
     {
-        Debug.Log("A Guilda recuou em segurança com todos os tesouros e experiência!");
+        if (PartyManager.Instance != null)
+        {
+            PartyManager.Instance.RestAllHeroesAtGuild();
+        }
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.currentState = BattleState.Idle;
+        }
+        SaveSystem.AutoSave("Retorno a Sede da Guilda");
+        Debug.Log("A Guilda retornou à Sede! Todos os heróis descansaram e os equipamentos foram salvos no Armazém da Guilda!");
         if (victoryPanel != null) victoryPanel.SetActive(false);
-        if (battleRootPanel != null) battleRootPanel.SetActive(false);
+        if (defeatPanel != null) defeatPanel.SetActive(false);
+        if (doorSelectionModal != null) doorSelectionModal.SetActive(false);
+        if (partyAdminModal != null) partyAdminModal.SetActive(false);
+        if (PartyMenuUI.Instance != null)
+        {
+            PartyMenuUI.Instance.EnterGuildHub();
+        }
     }
 
     #endregion

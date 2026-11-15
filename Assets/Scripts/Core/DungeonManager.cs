@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// O Mestre da Masmorra (DungeonManager).
-/// Controla o avanço pelos 100 andares da torre, geração de portas e salas,
-/// aparição do Boss do andar e a mecânica de permanência para grind pós-boss (Pick Me Up!).
+/// Controla o avanço pelos 100 andares da torre, rastreamento de andares liberados (maxUnlockedFloor),
+/// geração de portas e salas, aparição do Boss do andar e salvamento automático de progresso.
 /// </summary>
 public class DungeonManager : MonoBehaviour
 {
@@ -13,6 +13,9 @@ public class DungeonManager : MonoBehaviour
     [Header("Progresso da Torre (Pick Me Up!)")]
     [Tooltip("Andar atual em que a guilda se encontra (1 a 100)")]
     public int currentFloor = 1;
+
+    [Tooltip("Maior andar já desbloqueado pela Guilda (todos os andares de 1 até este valor estão liberados)")]
+    public int maxUnlockedFloor = 1;
 
     [Tooltip("Quantidade de salas concluídas neste andar")]
     public int clearedRoomsThisFloor = 0;
@@ -38,20 +41,43 @@ public class DungeonManager : MonoBehaviour
 
     void Start()
     {
-        StartFloor(currentFloor);
+        if (maxUnlockedFloor < currentFloor)
+            maxUnlockedFloor = currentFloor;
+
+        GenerateDoors();
     }
 
     /// <summary>
-    /// Inicia um novo andar da torre.
+    /// Inicia um andar da torre (e garante que ele esteja registrado nos andares liberados).
     /// </summary>
     public void StartFloor(int floorNumber)
     {
-        currentFloor = floorNumber;
+        currentFloor = Mathf.Max(1, floorNumber);
+        if (currentFloor > maxUnlockedFloor)
+        {
+            maxUnlockedFloor = currentFloor;
+        }
+
         clearedRoomsThisFloor = 0;
         isFloorBossDefeated = false;
 
-        Debug.Log($"🏰 [TORRE - ANDAR {currentFloor}] A Guilda entrou em um novo território desconhecido!");
+        Debug.Log($"🏰 [TORRE - ANDAR {currentFloor}] A Guilda entrou no Andar {currentFloor}! (Andares Liberados: 1 ao {maxUnlockedFloor})");
         GenerateDoors();
+        SaveSystem.AutoSave($"Entrada no Andar {currentFloor}");
+    }
+
+    /// <summary>
+    /// Permite viajar diretamente para qualquer andar já liberado pela Guilda e iniciar o combate nele.
+    /// </summary>
+    public void TravelToUnlockedFloor(int targetFloor)
+    {
+        int clamped = Mathf.Clamp(targetFloor, 1, Mathf.Max(1, maxUnlockedFloor));
+        StartFloor(clamped);
+
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.TestStartBattle();
+        }
     }
 
     /// <summary>
@@ -63,10 +89,7 @@ public class DungeonManager : MonoBehaviour
 
         if (isFloorBossDefeated)
         {
-            // O Boss já morreu! A Escadaria fica permanentemente disponível como opção para o jogador subir quando quiser!
             currentDoorChoices.Add(new DungeonRoom(RoomType.Stairs, currentFloor, clearedRoomsThisFloor));
-
-            // Outras opções para quem quer continuar grindando no andar
             currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
             currentDoorChoices.Add(new DungeonRoom(RoomType.Treasure, currentFloor, clearedRoomsThisFloor));
 
@@ -74,10 +97,8 @@ public class DungeonManager : MonoBehaviour
         }
         else
         {
-            // O Boss ainda está vivo
             if (clearedRoomsThisFloor >= roomsRequiredForBoss)
             {
-                // Chegou na hora do Boss! A porta do Chefe aparece como opção prioritária
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Boss, currentFloor, clearedRoomsThisFloor));
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Rest, currentFloor, clearedRoomsThisFloor));
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
@@ -86,7 +107,6 @@ public class DungeonManager : MonoBehaviour
             }
             else
             {
-                // Salas normais de progressão (Combate, Baú, Descanso)
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
                 float roll = Random.value;
@@ -111,7 +131,6 @@ public class DungeonManager : MonoBehaviour
     /// </summary>
     public void ChooseDoor(int doorIndex)
     {
-        // Se houver batalha ativa, bloqueia a passagem de portas!
         if (BattleManager.Instance != null && (BattleManager.Instance.currentState == BattleState.HeroTurn || BattleManager.Instance.currentState == BattleState.EnemyTurn))
         {
             Debug.LogWarning("⚠️ Você precisa derrotar todos os monstros na câmara presente antes de escolher a próxima porta!");
@@ -125,7 +144,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         DungeonRoom selectedRoom = currentDoorChoices[doorIndex];
-        currentDoorChoices.Clear(); // Limpa as portas até a sala ser superada
+        currentDoorChoices.Clear();
         Debug.Log($"🚶 A Guilda atravessou a porta: [{selectedRoom.roomTitle}]");
 
         ProcessRoom(selectedRoom);
@@ -147,7 +166,7 @@ public class DungeonManager : MonoBehaviour
                 {
                     List<EnemyData> bossEncounter = new List<EnemyData> { BattleManager.Instance.floorBossEnemy };
                     BattleManager.Instance.StartBattle(bossEncounter);
-                    return; // Aguarda a batalha terminar para continuar
+                    return;
                 }
                 else
                 {
@@ -160,14 +179,13 @@ public class DungeonManager : MonoBehaviour
                 if (BattleManager.Instance != null && BattleManager.Instance.commonFloorEnemies != null && BattleManager.Instance.commonFloorEnemies.Length > 0)
                 {
                     List<EnemyData> encounter = new List<EnemyData>();
-                    // Quantidade aleatória entre 2 e 6 inimigos (regra: mínimo 2, máximo 6)
                     int enemyCount = Random.Range(2, 7);
                     for (int i = 0; i < enemyCount; i++)
                     {
                         encounter.Add(BattleManager.Instance.commonFloorEnemies[Random.Range(0, BattleManager.Instance.commonFloorEnemies.Length)]);
                     }
                     BattleManager.Instance.StartBattle(encounter);
-                    return; // Aguarda a batalha terminar para continuar
+                    return;
                 }
                 else
                 {
@@ -179,14 +197,24 @@ public class DungeonManager : MonoBehaviour
                 break;
 
             case RoomType.Treasure:
-                Debug.Log($"🎁 Baú aberto! Ouro e tesouros obtidos!");
+                Debug.Log($"🎁 Baú aberto! Ouro e equipamentos enviados para o Depósito da Guilda!");
+                int chestGold = Random.Range(50, 120) * currentFloor;
+                List<ItemData> chestDrops = new List<ItemData>();
                 if (PartyManager.Instance != null)
                 {
-                    PartyManager.Instance.AddGold(Random.Range(50, 120) * currentFloor);
+                    PartyManager.Instance.AddGold(chestGold);
                     ItemData chestLoot = ItemGenerator.GenerateRandomDungeonDrop();
                     PartyManager.Instance.AddItemToInventory(chestLoot);
+                    if (chestLoot != null) chestDrops.Add(chestLoot);
                 }
-                break;
+                GenerateDoors();
+                SaveSystem.AutoSave("Bau de Tesouro Coletado");
+                if (BattleHUD.Instance != null)
+                {
+                    BattleHUD.Instance.UpdateDungeonBackground(RoomType.Treasure, currentFloor);
+                    BattleHUD.Instance.ShowVictory(0, chestGold, chestDrops);
+                }
+                return;
 
             case RoomType.Rest:
                 Debug.Log($"🏕️ O grupo descansou na fogueira! Curando 35% de HP e MP de todos os heróis!");
@@ -195,24 +223,37 @@ public class DungeonManager : MonoBehaviour
                     foreach (var hero in PartyManager.Instance.activeParty)
                     {
                         hero.Heal(Mathf.RoundToInt(hero.GetMaxHP() * 0.35f));
+                        hero.currentMP = Mathf.Min(hero.GetMaxMP(), hero.currentMP + Mathf.RoundToInt(hero.GetMaxMP() * 0.35f));
                     }
                 }
-                break;
+                GenerateDoors();
+                SaveSystem.AutoSave("Descanso na Fogueira");
+                if (BattleHUD.Instance != null)
+                {
+                    BattleHUD.Instance.UpdateDungeonBackground(RoomType.Rest, currentFloor);
+                    BattleHUD.Instance.ShowVictory(0, 0, null);
+                }
+                return;
         }
 
-        // Gera as próximas opções de portas após a sala ser concluída
         GenerateDoors();
+        SaveSystem.AutoSave("Sala Concluida");
     }
 
     /// <summary>
-    /// Marca o Boss do andar como derrotado e libera as escadarias para o próximo andar.
+    /// Marca o Boss do andar como derrotado e libera o próximo andar na lista de Andares Liberados!
     /// </summary>
     [ContextMenu("Derrotar Boss do Andar (Desbloquear Escadas)")]
     public void DefeatFloorBoss()
     {
         isFloorBossDefeated = true;
+        if (currentFloor + 1 > maxUnlockedFloor)
+        {
+            maxUnlockedFloor = currentFloor + 1;
+        }
+
         Debug.Log($"🏆 VITÓRIA ÉPICA! O Guardião do Andar {currentFloor} foi destruído!");
-        Debug.Log($"🪜 A Escadaria para o Andar {currentFloor + 1} agora está aberta! Você pode subir ou continuar farmando no andar!");
+        Debug.Log($"🪜 O Andar {currentFloor + 1} foi LIBERADO permanentemente no seu Save!");
 
         if (PartyManager.Instance != null)
         {
@@ -221,6 +262,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         GenerateDoors();
+        SaveSystem.AutoSave($"Boss do Andar {currentFloor} Derrotado");
     }
 
     /// <summary>
@@ -230,8 +272,18 @@ public class DungeonManager : MonoBehaviour
     public void AscendToNextFloor()
     {
         int nextFloor = currentFloor + 1;
+        if (nextFloor > maxUnlockedFloor)
+        {
+            maxUnlockedFloor = nextFloor;
+        }
+
         Debug.Log($"🪜 [SUBINDO AS ESCADAS] A Guilda sobe os degraus de pedra e adentra o Andar {nextFloor}!");
         StartFloor(nextFloor);
+
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.TestStartBattle();
+        }
     }
 
     #region Métodos de Teste Rápido no Inspector

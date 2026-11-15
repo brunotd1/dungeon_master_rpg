@@ -20,7 +20,6 @@ public static class AutoSceneBootstrap
     {
         EditorApplication.delayCall += () =>
         {
-            // Se a cena ativa no editor estiver vazia/sem caminho salvo (cena Untitled padrão do Unity ao clonar)
             var activeScene = EditorSceneManager.GetActiveScene();
             if (string.IsNullOrEmpty(activeScene.path) || activeScene.name == "Untitled")
             {
@@ -95,6 +94,13 @@ public static class AutoSceneBootstrap
         {
             GameObject menuObj = new GameObject("PartyMenuUI", typeof(PartyMenuUI));
             Debug.Log("[AutoSceneBootstrap] PartyMenuUI criado dinamicamente.");
+        }
+
+        // 8. Garante o MainMenuUI (Tela de Título: Novo Jogo, Continuar Jogo e Carregar Save)
+        if (MainMenuUI.Instance == null && Object.FindAnyObjectByType<MainMenuUI>() == null)
+        {
+            GameObject mainMenuObj = new GameObject("MainMenuUI", typeof(MainMenuUI));
+            Debug.Log("[AutoSceneBootstrap] MainMenuUI criado dinamicamente.");
         }
     }
 }

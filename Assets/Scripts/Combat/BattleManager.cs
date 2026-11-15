@@ -123,7 +123,14 @@ public class BattleManager : MonoBehaviour
     private IEnumerator AutoStartBattleRoutine()
     {
         yield return null; // Aguarda o primeiro frame completo para inicialização de todos os Singletons
-        TestStartBattle();
+        if (BattleHUD.Instance != null)
+        {
+            BattleHUD.Instance.BuildHUDStructureIfNotExisting();
+        }
+        if (MainMenuUI.Instance != null)
+        {
+            MainMenuUI.Instance.OpenMainMenu();
+        }
     }
 
     /// <summary>
@@ -607,7 +614,12 @@ public class BattleManager : MonoBehaviour
             else
             {
                 DungeonManager.Instance.GenerateDoors();
+                SaveSystem.AutoSave("Vitoria na Sala");
             }
+        }
+        else
+        {
+            SaveSystem.AutoSave("Vitoria na Sala");
         }
 
         if (BattleHUD.Instance != null)
