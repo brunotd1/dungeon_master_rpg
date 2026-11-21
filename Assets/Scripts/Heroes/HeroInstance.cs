@@ -23,7 +23,15 @@ public class HeroInstance
     public int currentXP = 0;
     public int xpToNextLevel = 100;
 
-    public int MaxLevel => HeroData.GetMaxLevelForStars(currentStars);
+    public int MaxLevel
+    {
+        get
+        {
+            int starCap = HeroData.GetMaxLevelForStars(currentStars);
+            int floorCap = DungeonManager.Instance != null ? DungeonManager.Instance.GetMaxHeroLevelForFloor() : 10;
+            return Mathf.Min(starCap, floorCap);
+        }
+    }
     public bool IsAtMaxLevel => level >= MaxLevel;
 
     [Header("Recursos Vitais em Batalha")]
@@ -285,13 +293,16 @@ public class HeroInstance
 
     public void TakeDamage(int rawDamage, bool isMagic = false)
     {
-        int defense = isMagic ? Mathf.RoundToInt(GetMagicAttack() * 0.4f) : GetPhysicalDefense();
-        int finalDamage = Mathf.Max(1, rawDamage - defense);
+        int defense = isMagic ? Mathf.RoundToInt(GetMagicAttack() * 0.25f + GetPhysicalDefense() * 0.35f) : GetPhysicalDefense();
+        int flatReduction = Mathf.RoundToInt(defense * 0.25f);
+        float pctMultiplier = 100f / (100f + defense * 0.55f);
+        int reduced = Mathf.RoundToInt(Mathf.Max(rawDamage * 0.45f, rawDamage - flatReduction) * pctMultiplier);
+        int finalDamage = Mathf.Max(6, reduced);
 
         currentHP -= finalDamage;
         if (currentHP < 0) currentHP = 0;
 
-        Debug.Log($"{heroData.heroName} recebeu {finalDamage} de dano! (HP restante: {currentHP}/{GetMaxHP()})");
+        Debug.Log($"{heroName} recebeu {finalDamage} de dano! (HP restante: {currentHP}/{GetMaxHP()})");
     }
 
     public void Heal(int amount)
@@ -356,7 +367,8 @@ public class HeroInstance
     {
         if (IsAtMaxLevel)
         {
-            Debug.Log($"⚠️ {heroName} atingiu o limite de nível {MaxLevel} ({currentStars}★)! Promova a estrela do herói para continuar evoluindo!");
+            currentXP = 0;
+            Debug.Log($"⚠️ {heroName} atingiu o limite de nível {MaxLevel} ({currentStars}★ / Andar atual)! Avance de andar ou promova a estrela do herói!");
             return;
         }
 
@@ -371,7 +383,7 @@ public class HeroInstance
         if (IsAtMaxLevel)
         {
             currentXP = 0;
-            Debug.Log($"🛑 LIMITE ALCANÇADO: {heroName} atingiu o Nível Máximo {MaxLevel} para {currentStars} Estrelas!");
+            Debug.Log($"🛑 LIMITE ALCANÇADO: {heroName} atingiu o Nível Máximo {MaxLevel} permitido neste andar!");
         }
     }
 
@@ -415,10 +427,10 @@ public class HeroInstance
         return true;
     }
 
-    private void CalculateXPRequirement()
+    public void CalculateXPRequirement()
     {
-        // Fórmula de progressão de XP: escala suavemente
-        xpToNextLevel = Mathf.RoundToInt(100 * Mathf.Pow(level, 1.35f));
+        // Curva calibrada para o Andar 1 (Nv. 1->2: 74 XP ... Nv. 4->5: 209 XP ... Nv. 9->10: 594 XP)
+        xpToNextLevel = 45 + (level * 25) + (level * level * 4);
     }
 
     #endregion

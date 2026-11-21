@@ -44,8 +44,9 @@ public class DungeonRoom
                 description = "Um refúgio seguro para a guilda curar ferimentos e recuperar mana.";
                 break;
             case RoomType.Boss:
-                roomTitle = $"Guardião do Andar {floor}";
-                description = "Uma presença esmagadora emana desta porta. O Chefe do Andar aguarda!";
+                int bossLvl = (floor - 1) * 10 + 7;
+                roomTitle = $"Guardião do Andar {floor} (Nv. {bossLvl})";
+                description = $"Uma presença esmagadora emana desta porta. O Chefe Nv. {bossLvl} aguarda!";
                 break;
             case RoomType.Stairs:
                 roomTitle = $"Escadaria para o Andar {floor + 1}";

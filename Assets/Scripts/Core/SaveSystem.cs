@@ -248,7 +248,7 @@ public class HeroSaveData
         instance.currentStars = data.stars;
         instance.isGoldStar = data.isGoldStar;
         instance.currentXP = currentXP;
-        instance.xpToNextLevel = Mathf.Max(100, xpToNextLevel);
+        instance.CalculateXPRequirement();
 
         instance.unallocatedAttributePoints = unallocatedAttributePoints;
         instance.allocatedStrength = allocatedStrength;

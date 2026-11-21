@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -67,6 +68,9 @@ public class BattleHUD : MonoBehaviour
     [Header("Textos do Topo e Log")]
     public TextMeshProUGUI turnBannerText;
     public TextMeshProUGUI combatLogText;
+    public Button autoRunBtn;
+    public Image autoRunBtnImage;
+    public TextMeshProUGUI autoRunBtnText;
 
     [Header("Botões de Ação do Herói Ativo")]
     public TextMeshProUGUI commandHeaderTitle;
@@ -133,6 +137,13 @@ public class BattleHUD : MonoBehaviour
     public Sprite rogueHurt;
     public Sprite rogueDefeat;
 
+    [Header("Sprites de Animacao do Boss Necromante")]
+    public Sprite necromancerIdle;
+    public Sprite necromancerAttack;
+    public Sprite necromancerSummon;
+    public Sprite necromancerHurt;
+    public Sprite necromancerDefeat;
+
     // Listas internas de referências visuais
     private List<HeroFieldDisplay> heroFieldDisplays = new List<HeroFieldDisplay>();
     private List<HeroTabDisplay> heroTabDisplays = new List<HeroTabDisplay>();
@@ -166,6 +177,17 @@ public class BattleHUD : MonoBehaviour
             if (hfd != null && hfd.hero != null && hfd.hero.IsAlive && hfd.avatarImage != null && hfd.activeAnimRoutine == null)
             {
                 hfd.avatarImage.rectTransform.localScale = new Vector3(1f, breathScaleY, 1f);
+            }
+        }
+
+        // Flutuacao espectral imponente no Boss Necromante vivo
+        float bossFloatScaleY = 1.0f + Mathf.Sin(breathTimer * 0.85f) * 0.02f;
+        for (int i = 0; i < enemyFieldDisplays.Count; i++)
+        {
+            var efd = enemyFieldDisplays[i];
+            if (efd != null && efd.enemy != null && efd.enemy.IsAlive && efd.enemy.data != null && efd.enemy.data.isBoss && efd.avatarImage != null && efd.activeAnimRoutine == null)
+            {
+                efd.avatarImage.rectTransform.localScale = new Vector3(1f, bossFloatScaleY, 1f);
             }
         }
     }
@@ -252,8 +274,17 @@ public class BattleHUD : MonoBehaviour
         Image rootBg = battleRootPanel.AddComponent<Image>();
         rootBg.color = new Color(0.06f, 0.08f, 0.12f, 1f);
 
-        // 2. Banner de Turno no Topo
-        GameObject bannerObj = CreateUIObject("TurnBanner", battleRootPanel.transform, new Vector2(0.18f, 0.92f), new Vector2(0.80f, 0.99f));
+        // 2. Botão Auto-Run (Esquerda), Banner de Turno (Centro) e Botão Guilda (Direita)
+        autoRunBtn = CreateButton(battleRootPanel.transform, "AutoRunBtn", "[ AUTO-RUN: OFF (A) ]", new Vector2(0.02f, 0.92f), new Vector2(0.20f, 0.98f), new Color(0.22f, 0.26f, 0.34f));
+        autoRunBtnImage = autoRunBtn.GetComponent<Image>();
+        autoRunBtnText = autoRunBtn.GetComponentInChildren<TextMeshProUGUI>();
+        if (autoRunBtnText != null) autoRunBtnText.fontSize = 15.5f;
+        autoRunBtn.onClick.AddListener(() => {
+            if (BattleManager.Instance != null) BattleManager.Instance.ToggleAutoRun();
+        });
+        UpdateAutoRunButtonUI(BattleManager.Instance != null && BattleManager.Instance.isAutoRunEnabled);
+
+        GameObject bannerObj = CreateUIObject("TurnBanner", battleRootPanel.transform, new Vector2(0.21f, 0.92f), new Vector2(0.81f, 0.99f));
         turnBannerText = bannerObj.AddComponent<TextMeshProUGUI>();
         ApplyCrispTextStyle(turnBannerText, 28f, TextAlignmentOptions.Center, true);
         turnBannerText.text = "=== ARENA DE COMBATE ===";
@@ -548,6 +579,7 @@ public class BattleHUD : MonoBehaviour
         defeatPanel.SetActive(false);
         targetModePanel.SetActive(false);
         isTargetingMode = false;
+        UpdateAutoRunButtonUI(BattleManager.Instance != null && BattleManager.Instance.isAutoRunEnabled);
 
         // Limpa instâncias anteriores
         foreach (Transform child in heroesFieldContainer) Destroy(child.gameObject);
@@ -588,21 +620,63 @@ public class BattleHUD : MonoBehaviour
         // Ordena profundidade (Z-order) dos herÃ³is: quem estÃ¡ mais atrÃ¡s (maior Y) Ã© desenhado primeiro
         RebuildHeroZOrder();
 
-        // 2. Posicionamento TÃ¡tico dos Monstros no Piso de Pedra (Lado Esquerdo - FormaÃ§Ã£o em V / Zigzag no ChÃ£o)
-        if (enemies.Count == 1 && enemies[0].data.isBoss)
+        // 2. Posicionamento TÃ¡tico dos Monstros (Incluindo Boss + Esqueletos Invocados)
+        RebuildEnemiesDisplay(enemies);
+
+        UpdateAllStats();
+    }
+
+    public void RebuildEnemiesDisplay(List<EnemyInstance> enemies)
+    {
+        if (enemiesFieldContainer == null) return;
+
+        foreach (Transform child in enemiesFieldContainer)
         {
-            EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[0], 0, 0.30f, 0.05f, 320, 160, true);
-            enemyFieldDisplays.Add(efd);
+            child.gameObject.SetActive(false);
+            Destroy(child.gameObject);
+        }
+        enemyFieldDisplays.Clear();
+
+        if (enemies == null) return;
+
+        bool isBossBattle = enemies.Exists(e => e.data != null && e.data.isBoss);
+        if (isBossBattle)
+        {
+            float[,] bossMinionSlots = new float[,] {
+                { 0.45f, 0.16f }, // Esqueleto Invocado 1 (Fundo Vanguarda)
+                { 0.65f, 0.02f }, // Esqueleto Invocado 2 (Frente Vanguarda)
+                { 0.78f, 0.15f }, // Slot Extra 3
+                { 0.42f, 0.01f }  // Slot Extra 4
+            };
+            int minionSlotIdx = 0;
+
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                EnemyInstance e = enemies[i];
+                bool isThisBoss = e.data != null && e.data.isBoss;
+                if (isThisBoss)
+                {
+                    EnemyFieldDisplay bossDisplay = CreateEnemyFieldEntity(e, i, 0.01f, 0.03f, 320, 160, true);
+                    enemyFieldDisplays.Add(bossDisplay);
+                }
+                else
+                {
+                    int slot = minionSlotIdx < 4 ? minionSlotIdx : 3;
+                    minionSlotIdx++;
+                    EnemyFieldDisplay minionDisplay = CreateEnemyFieldEntity(e, i, bossMinionSlots[slot, 0], bossMinionSlots[slot, 1], 220, 95, false);
+                    enemyFieldDisplays.Add(minionDisplay);
+                }
+            }
         }
         else
         {
             float[,] enemySlotPositions = new float[,] {
-                { 0.42f, 0.04f }, // Slot 0: Frente Centro
-                { 0.10f, 0.12f }, // Slot 1: Meio Esquerda
-                { 0.68f, 0.12f }, // Slot 2: Meio Direita
+                { 0.46f, 0.02f }, // Slot 0: Frente Centro
+                { 0.31f, 0.16f }, // Slot 1: Fundo Centro-Esquerda
+                { 0.61f, 0.15f }, // Slot 2: Fundo Centro-Direita
                 { 0.16f, 0.02f }, // Slot 3: Frente Esquerda
-                { 0.74f, 0.02f }, // Slot 4: Frente Direita
-                { 0.38f, 0.16f }  // Slot 5: Recuado Centro
+                { 0.76f, 0.03f }, // Slot 4: Frente Direita
+                { 0.01f, 0.15f }  // Slot 5: Fundo Extrema-Esquerda
             };
 
             for (int i = 0; i < enemies.Count; i++)
@@ -614,11 +688,9 @@ public class BattleHUD : MonoBehaviour
                 EnemyFieldDisplay efd = CreateEnemyFieldEntity(enemies[i], i, posX, posY, 220, 95, false);
                 enemyFieldDisplays.Add(efd);
             }
-
-            RebuildEnemyZOrder();
         }
 
-        UpdateAllStats();
+        RebuildEnemyZOrder();
     }
 
     private void RebuildHeroZOrder()
@@ -694,6 +766,7 @@ public class BattleHUD : MonoBehaviour
         GameObject heroObj = CreateUIObject($"HeroField_{hero.heroName}_{index}", heroesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + wRatio, yRatio + hRatio));
         Image bg = heroObj.AddComponent<Image>();
         bg.color = Color.clear; // Sempre 100% invisÃ­vel (nunca desenha retÃ¢ngulo)
+        bg.raycastTarget = false;
 
         // Sombra oval suave gerada proceduralmente sob os pÃ©s do herÃ³i
         GameObject shadowObj = CreateUIObject("Shadow", heroObj.transform, new Vector2(0.08f, -0.02f), new Vector2(0.92f, 0.20f));
@@ -718,7 +791,13 @@ public class BattleHUD : MonoBehaviour
             avatarImg.color = Color.clear;
         }
 
-        Button btn = heroObj.AddComponent<Button>();
+        // Hitbox ajustada ao corpo do heroi para evitar cliques nas bordas vazias
+        GameObject hitboxObj = CreateUIObject("Hitbox", heroObj.transform, new Vector2(0.18f, 0.06f), new Vector2(0.82f, 0.88f));
+        Image hitboxImg = hitboxObj.AddComponent<Image>();
+        hitboxImg.color = Color.clear;
+        hitboxImg.raycastTarget = true;
+
+        Button btn = hitboxObj.AddComponent<Button>();
         btn.targetGraphic = avatarImg;
         ConfigureButtonColors(btn, Color.white, new Color(0.85f, 0.92f, 1f, 1f));
         btn.onClick.AddListener(() => {
@@ -820,12 +899,13 @@ public class BattleHUD : MonoBehaviour
     private EnemyFieldDisplay CreateEnemyFieldEntity(EnemyInstance enemy, int index, float xRatio, float yRatio, float w, float h, bool isBoss)
     {
         float depthScale = (!isBoss && yRatio > 0.08f) ? 0.93f : 1.0f;
-        float widthRatio = (isBoss ? 0.30f : 0.19f) * depthScale;
-        float heightRatio = (isBoss ? 0.34f : 0.26f) * depthScale;
+        float widthRatio = (isBoss ? 0.44f : 0.17f) * depthScale;
+        float heightRatio = (isBoss ? 0.54f : 0.26f) * depthScale;
 
         GameObject enemyObj = CreateUIObject($"EnemyField_{enemy.enemyName}_{index}", enemiesFieldContainer.transform, new Vector2(xRatio, yRatio), new Vector2(xRatio + widthRatio, yRatio + heightRatio));
         Image bg = enemyObj.AddComponent<Image>();
         bg.color = Color.clear; // Sempre 100% invisÃ­vel
+        bg.raycastTarget = false;
 
         // Sombra oval suave gerada proceduralmente sob os pÃ©s do monstro
         GameObject shadowObj = CreateUIObject("Shadow", enemyObj.transform, new Vector2(0.08f, -0.02f), new Vector2(0.92f, 0.20f));
@@ -850,7 +930,15 @@ public class BattleHUD : MonoBehaviour
             avatarImg.color = Color.clear;
         }
 
-        Button btn = enemyObj.AddComponent<Button>();
+        // Hitbox justa ao nucleo do corpo do inimigo (evita interceptar inimigos atras)
+        Vector2 hitboxMin = isBoss ? new Vector2(0.12f, 0.08f) : new Vector2(0.20f, 0.08f);
+        Vector2 hitboxMax = isBoss ? new Vector2(0.88f, 0.88f) : new Vector2(0.80f, 0.86f);
+        GameObject hitboxObj = CreateUIObject("Hitbox", enemyObj.transform, hitboxMin, hitboxMax);
+        Image hitboxImg = hitboxObj.AddComponent<Image>();
+        hitboxImg.color = Color.clear;
+        hitboxImg.raycastTarget = true;
+
+        Button btn = hitboxObj.AddComponent<Button>();
         btn.targetGraphic = avatarImg;
         ConfigureButtonColors(btn, Color.white, new Color(1f, 0.78f, 0.78f, 1f));
 
@@ -862,14 +950,31 @@ public class BattleHUD : MonoBehaviour
             }
         });
 
-        // === BARRA COMPACTA DE NOME + HP ACIMA DO MONSTRO ===
-        GameObject hudContainer = CreateUIObject("OverheadHUD", enemyObj.transform, new Vector2(-0.15f, 0.93f), new Vector2(1.15f, 1.30f));
+        // === BARRA COMPACTA DE NOME + HP ACIMA DO MONSTRO (Tambem clicavel para atacar) ===
+        Vector2 hudMin = isBoss ? new Vector2(0.08f, 0.94f) : new Vector2(-0.15f, 0.93f);
+        Vector2 hudMax = isBoss ? new Vector2(0.92f, 1.14f) : new Vector2(1.15f, 1.30f);
+        GameObject hudContainer = CreateUIObject("OverheadHUD", enemyObj.transform, hudMin, hudMax);
+        Image hudHitbox = hudContainer.AddComponent<Image>();
+        hudHitbox.color = Color.clear;
+        hudHitbox.raycastTarget = true;
+
+        Button hudBtn = hudContainer.AddComponent<Button>();
+        hudBtn.targetGraphic = avatarImg;
+        ConfigureButtonColors(hudBtn, Color.white, new Color(1f, 0.78f, 0.78f, 1f));
+        hudBtn.onClick.AddListener(() => {
+            if (BattleManager.Instance.currentState == BattleState.HeroTurn)
+            {
+                ExecuteAttackOnTarget(targetIdx);
+            }
+        });
 
         GameObject nameObj = CreateUIObject("Name", hudContainer.transform, new Vector2(0f, 0.50f), new Vector2(1f, 1f));
         TextMeshProUGUI nameTmp = nameObj.AddComponent<TextMeshProUGUI>();
         ApplyCrispTextStyle(nameTmp, isBoss ? 17f : 15f, TextAlignmentOptions.Center, true);
         nameTmp.overflowMode = TextOverflowModes.Overflow;
-        nameTmp.text = isBoss ? string.Format("<color=#ffd166>[CHEFE]</color> <b>{0}</b>", enemy.enemyName) : string.Format("<b>{0}</b>", enemy.enemyName);
+        nameTmp.text = isBoss
+            ? string.Format("<color=#ffd166>[CHEFE Nv.{0}]</color> <b>{1}</b>", enemy.level, enemy.enemyName)
+            : string.Format("<b>{0}</b> <color=#ffd166>Nv.{1}</color>", enemy.enemyName, enemy.level);
         nameTmp.raycastTarget = false;
 
         GameObject hpBarBgObj = CreateUIObject("HPBarBg", hudContainer.transform, new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.48f));
@@ -897,6 +1002,10 @@ public class BattleHUD : MonoBehaviour
             container = enemyObj,
             cardImage = shadowImg, // Aponta para a sombra oval no chÃ£o
             avatarImage = avatarImg,
+            hitboxImage = hitboxImg,
+            overheadHitboxImage = hudHitbox,
+            mainButton = btn,
+            overheadButton = hudBtn,
             nameText = nameTmp,
             hpText = hpTmp,
             hpFillImage = hpFill,
@@ -998,17 +1107,53 @@ public class BattleHUD : MonoBehaviour
             float hpRatio = Mathf.Clamp01((float)e.currentHP / Mathf.Max(1, e.maxHP));
             if (efd.hpFillImage != null) efd.hpFillImage.rectTransform.anchorMax = new Vector2(0.02f + 0.96f * hpRatio, 0.88f);
 
+            bool isBossUnit = e.data != null && e.data.isBoss;
             if (e.IsAlive)
             {
+                if (efd.container != null) efd.container.SetActive(true);
+                if (efd.overheadHitboxImage != null) efd.overheadHitboxImage.gameObject.SetActive(true);
                 efd.hpText.text = $"{e.currentHP}/{e.maxHP}";
-                if (efd.avatarImage != null) efd.avatarImage.color = Color.white;
+                if (efd.avatarImage != null)
+                {
+                    efd.avatarImage.color = Color.white;
+                    if (isBossUnit && necromancerIdle != null && efd.activeAnimRoutine == null)
+                    {
+                        efd.avatarImage.sprite = necromancerIdle;
+                    }
+                }
             }
             else
             {
                 efd.hpText.text = "DERROTADO";
                 efd.cardImage.color = new Color(0f, 0f, 0f, 0.25f);
-                if (efd.avatarImage != null) efd.avatarImage.color = new Color(0.25f, 0.25f, 0.25f, 0.3f);
+                if (isBossUnit)
+                {
+                    if (efd.container != null) efd.container.SetActive(true);
+                    if (efd.overheadHitboxImage != null) efd.overheadHitboxImage.gameObject.SetActive(false);
+                    if (efd.avatarImage != null)
+                    {
+                        if (necromancerDefeat != null) efd.avatarImage.sprite = necromancerDefeat;
+                        efd.avatarImage.color = new Color(0.85f, 0.85f, 0.85f, 0.95f);
+                        efd.avatarImage.rectTransform.localScale = Vector3.one;
+                    }
+                    if (efd.mainButton != null)
+                    {
+                        ColorBlock cb = efd.mainButton.colors;
+                        cb.disabledColor = new Color(0.85f, 0.85f, 0.85f, 0.95f);
+                        efd.mainButton.colors = cb;
+                    }
+                }
+                else
+                {
+                    if (efd.avatarImage != null) efd.avatarImage.color = new Color(0.25f, 0.25f, 0.25f, 0.3f);
+                    if (efd.container != null) efd.container.SetActive(false);
+                }
             }
+
+            if (efd.hitboxImage != null) efd.hitboxImage.raycastTarget = e.IsAlive;
+            if (efd.overheadHitboxImage != null) efd.overheadHitboxImage.raycastTarget = e.IsAlive;
+            if (efd.mainButton != null) efd.mainButton.interactable = e.IsAlive;
+            if (efd.overheadButton != null) efd.overheadButton.interactable = e.IsAlive;
         }
 
         // 3. Atualiza os dados detalhados do herÃ³i atualmente selecionado
@@ -1452,7 +1597,7 @@ public class BattleHUD : MonoBehaviour
         if (drops != null && drops.Count > 0)
         {
             dropsText = "\n<b>Itens Obtidos:</b> ";
-            foreach (var d in drops) dropsText += $"[{d.itemName}] ";
+            foreach (var d in drops) dropsText += $"[{d.itemName} - {ItemGenerator.FormatRarityName(d.rarity)}] ";
         }
 
         // Verifica se algum herói subiu de nível e possui pontos para distribuir
@@ -1472,11 +1617,42 @@ public class BattleHUD : MonoBehaviour
             levelUpNotice = $"\n\n<b>[LEVEL UP NO GRUPO!]</b>\nVocê tem {totalUnallocated} pontos de atributo para distribuir no menu [ADMINISTRAR GRUPO]!";
         }
 
+        string floorStatusNotice = "";
+        if (DungeonManager.Instance != null)
+        {
+            int curFloor = DungeonManager.Instance.currentFloor;
+            int maxLvl = DungeonManager.Instance.GetMaxHeroLevelForFloor(curFloor);
+            if (!DungeonManager.Instance.isFloorBossDefeated)
+            {
+                int reqLvl = DungeonManager.Instance.GetRequiredHeroLevelForBoss(curFloor);
+                int bossLvl = DungeonManager.Instance.GetFloorBossLevel(curFloor);
+                bool bossUnlocked = DungeonManager.Instance.AreHeroesReadyForFloorBoss(out int qualCount, out int reqCount);
+                floorStatusNotice = bossUnlocked
+                    ? $"\n<color=#ffd166><b>[PORTA DO CHEFE REVELADA!]</b> Guardião (Nv. {bossLvl}) disponível! (Nv. Máx. Andar {curFloor}: {maxLvl})</color>"
+                    : $"\n<size=15><color=#4cc9f0>Sala do Chefe (Nv. {bossLvl}): {qualCount}/{reqCount} heróis no Nv. {reqLvl}+  |  Nv. Máx. do Andar {curFloor}: Nv. {maxLvl}</color></size>";
+            }
+            else
+            {
+                floorStatusNotice = $"\n<size=15><color=#2ecc71>Guardião do Andar {curFloor} derrotado! Escadaria p/ o Andar {curFloor + 1} aberta! (Nv. Máx. Andar {curFloor}: Nv. {maxLvl})</color></size>";
+            }
+        }
+
+        bool autoRunActive = BattleManager.Instance != null && BattleManager.Instance.isAutoRunEnabled;
+        string autoRunNotice = autoRunActive
+            ? "\n<color=#ffd166><b>[AUTO-RUN ATIVO]</b> Avançando automaticamente para a próxima sala...</color>"
+            : "";
+
         if (victorySummaryText != null)
         {
             victorySummaryText.color = Color.white;
+            string xpLine = xp > 0 ? $"\n+{xp} XP para cada herói vivo" : "";
             string autoSaveTag = $"\n<size=16><color=#2ecc71>[Progresso e Deposito da Guilda salvos automaticamente no Slot {SaveSystem.CurrentActiveSlot}!]</color></size>";
-            victorySummaryText.text = $"<b>Recompensas da Câmara:</b>\n+{xp} XP para cada herói vivo\n+{gold} Moedas de Ouro{dropsText}{levelUpNotice}{autoSaveTag}";
+            victorySummaryText.text = $"<b>Recompensas da Câmara:</b>{xpLine}\n+{gold} Moedas de Ouro{dropsText}{levelUpNotice}{floorStatusNotice}{autoRunNotice}{autoSaveTag}";
+        }
+
+        if (autoRunActive)
+        {
+            BattleManager.Instance.TriggerAutoAdvanceNextRoom(1.15f);
         }
     }
 
@@ -1627,8 +1803,32 @@ public class BattleHUD : MonoBehaviour
         }
     }
 
+    public void UpdateAutoRunButtonUI(bool isAuto)
+    {
+        if (autoRunBtn == null) return;
+
+        Color bg = isAuto
+            ? new Color(0.14f, 0.62f, 0.28f)
+            : new Color(0.22f, 0.26f, 0.34f);
+
+        if (autoRunBtnImage != null)
+            autoRunBtnImage.color = bg;
+
+        ConfigureButtonColors(autoRunBtn, bg, bg * 1.25f);
+
+        if (autoRunBtnText != null)
+        {
+            autoRunBtnText.text = isAuto ? "[ AUTO-RUN: ATIVO (A) ]" : "[ AUTO-RUN: OFF (A) ]";
+            autoRunBtnText.color = Color.white;
+        }
+    }
+
     public void OnClickRetreatFromDungeon()
     {
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.SetAutoRun(false);
+        }
         if (PartyManager.Instance != null)
         {
             PartyManager.Instance.RestAllHeroesAtGuild();
@@ -1725,6 +1925,9 @@ public class BattleHUD : MonoBehaviour
 
     public static Sprite GetEnemySprite(EnemyInstance enemy)
     {
+        if (enemy != null && enemy.data != null && enemy.data.isBoss && _instance != null && _instance.necromancerIdle != null)
+            return _instance.necromancerIdle;
+
         if (enemy != null && enemy.data != null && enemy.data.battleSprite != null)
             return enemy.data.battleSprite;
 
@@ -1737,6 +1940,26 @@ public class BattleHUD : MonoBehaviour
         Sprite loaded = Resources.Load<Sprite>($"Sprites/Enemies/{spriteName}");
         if (loaded != null) return loaded;
 
+        return null;
+    }
+
+    private static Sprite LoadEnemySpriteWithFallback(string resourcePath, string fileName)
+    {
+        Sprite spr = Resources.Load<Sprite>(resourcePath);
+        if (spr != null) return spr;
+
+        string fullPath = Path.Combine(Application.dataPath, "Resources", "Sprites", "Enemies", "Necromante", fileName);
+        if (File.Exists(fullPath))
+        {
+            byte[] bytes = File.ReadAllBytes(fullPath);
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (ImageConversion.LoadImage(tex, bytes))
+            {
+                tex.filterMode = FilterMode.Bilinear;
+                tex.wrapMode = TextureWrapMode.Clamp;
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            }
+        }
         return null;
     }
 
@@ -1776,6 +1999,13 @@ public class BattleHUD : MonoBehaviour
         if (rogueAttack == null) rogueAttack = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_attack");
         if (rogueHurt == null) rogueHurt = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_hurt");
         if (rogueDefeat == null) rogueDefeat = Resources.Load<Sprite>("Sprites/Heroes/Ladino/ladino_defeat");
+
+        if (necromancerIdle == null) necromancerIdle = LoadEnemySpriteWithFallback("Sprites/Enemies/Necromante/necromante_idle", "necromante_idle.png");
+        if (necromancerIdle == null) necromancerIdle = Resources.Load<Sprite>("Sprites/Enemies/necromante");
+        if (necromancerAttack == null) necromancerAttack = LoadEnemySpriteWithFallback("Sprites/Enemies/Necromante/necromante_ataque", "necromante_ataque.png");
+        if (necromancerSummon == null) necromancerSummon = LoadEnemySpriteWithFallback("Sprites/Enemies/Necromante/necromante_invocando", "necromante_invocando.png");
+        if (necromancerHurt == null) necromancerHurt = LoadEnemySpriteWithFallback("Sprites/Enemies/Necromante/necromante_dano", "necromante_dano.png");
+        if (necromancerDefeat == null) necromancerDefeat = LoadEnemySpriteWithFallback("Sprites/Enemies/Necromante/necromante_derrota", "necromante_derrota.png");
     }
 
     #endregion
@@ -2144,11 +2374,116 @@ public class BattleHUD : MonoBehaviour
         hfd.activeAnimRoutine = null;
     }
 
-    private IEnumerator ShakeEnemyCard(EnemyFieldDisplay efd)
+    public void PlayBossAttackAnimation(EnemyInstance boss)
+    {
+        var efd = enemyFieldDisplays.Find(d => d.enemy == boss);
+        if (efd == null || boss == null || !boss.IsAlive || efd.container == null || !efd.container.activeInHierarchy) return;
+
+        if (efd.activeAnimRoutine != null) StopCoroutine(efd.activeAnimRoutine);
+        efd.activeAnimRoutine = StartCoroutine(BossAttackCoroutine(efd));
+    }
+
+    private IEnumerator BossAttackCoroutine(EnemyFieldDisplay efd)
     {
         RectTransform rt = efd.container.GetComponent<RectTransform>();
         Vector2 origPos = rt.anchoredPosition;
+        Vector2 forwardPos = origPos + new Vector2(26f, 0f);
+
+        if (necromancerAttack != null && efd.avatarImage != null)
+            efd.avatarImage.sprite = necromancerAttack;
+
+        float elapsed = 0f;
+        float dashTime = 0.10f;
+        while (elapsed < dashTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(origPos, forwardPos, elapsed / dashTime);
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.25f);
+
+        elapsed = 0f;
+        float returnTime = 0.10f;
+        while (elapsed < returnTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(forwardPos, origPos, elapsed / returnTime);
+            yield return null;
+        }
+
+        rt.anchoredPosition = origPos;
+        if (efd.enemy != null && efd.enemy.IsAlive && necromancerIdle != null && efd.avatarImage != null)
+            efd.avatarImage.sprite = necromancerIdle;
+
+        efd.activeAnimRoutine = null;
+    }
+
+    public void PlayBossSummonAnimation(EnemyInstance boss)
+    {
+        var efd = enemyFieldDisplays.Find(d => d.enemy == boss);
+        if (efd == null || boss == null || !boss.IsAlive || efd.container == null || !efd.container.activeInHierarchy) return;
+
+        if (efd.activeAnimRoutine != null) StopCoroutine(efd.activeAnimRoutine);
+        efd.activeAnimRoutine = StartCoroutine(BossSummonCoroutine(efd));
+    }
+
+    private IEnumerator BossSummonCoroutine(EnemyFieldDisplay efd)
+    {
+        RectTransform rt = efd.container.GetComponent<RectTransform>();
+        Vector2 origPos = rt.anchoredPosition;
+        Vector2 risePos = origPos + new Vector2(0f, 12f);
+        Color origShadow = efd.cardImage != null ? efd.cardImage.color : new Color(0f, 0f, 0f, 0.72f);
+
+        if (necromancerSummon != null && efd.avatarImage != null)
+            efd.avatarImage.sprite = necromancerSummon;
+        if (efd.cardImage != null)
+            efd.cardImage.color = new Color(0.55f, 0.15f, 0.85f, 0.92f);
+
+        float elapsed = 0f;
+        float riseTime = 0.14f;
+        while (elapsed < riseTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(origPos, risePos, elapsed / riseTime);
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(0.47f);
+
+        elapsed = 0f;
+        float fallTime = 0.14f;
+        while (elapsed < fallTime)
+        {
+            elapsed += Time.deltaTime;
+            rt.anchoredPosition = Vector2.Lerp(risePos, origPos, elapsed / fallTime);
+            yield return null;
+        }
+
+        rt.anchoredPosition = origPos;
+        if (efd.cardImage != null) efd.cardImage.color = origShadow;
+        if (efd.enemy != null && efd.enemy.IsAlive && necromancerIdle != null && efd.avatarImage != null)
+            efd.avatarImage.sprite = necromancerIdle;
+
+        efd.activeAnimRoutine = null;
+    }
+
+    private IEnumerator ShakeEnemyCard(EnemyFieldDisplay efd)
+    {
+        if (efd == null || efd.container == null || !efd.container.activeInHierarchy)
+            yield break;
+        if (efd.enemy != null && !efd.enemy.IsAlive)
+            yield break;
+
+        RectTransform rt = efd.container.GetComponent<RectTransform>();
+        Vector2 origPos = rt.anchoredPosition;
         Color origColor = efd.cardImage.color;
+        bool isBossUnit = efd.enemy != null && efd.enemy.data != null && efd.enemy.data.isBoss;
+
+        if (isBossUnit && necromancerHurt != null && efd.avatarImage != null)
+        {
+            efd.avatarImage.sprite = necromancerHurt;
+        }
 
         // Flash de dano
         efd.cardImage.color = new Color(0.85f, 0.25f, 0.25f, 1f);
@@ -2161,6 +2496,15 @@ public class BattleHUD : MonoBehaviour
 
         rt.anchoredPosition = origPos;
         efd.cardImage.color = origColor;
+
+        if (isBossUnit && efd.enemy != null && efd.enemy.IsAlive)
+        {
+            yield return new WaitForSeconds(0.12f);
+            if (efd.enemy.IsAlive && necromancerIdle != null && efd.avatarImage != null && efd.activeAnimRoutine == null)
+            {
+                efd.avatarImage.sprite = necromancerIdle;
+            }
+        }
     }
 
     #endregion
@@ -2195,9 +2539,14 @@ public class BattleHUD : MonoBehaviour
         public GameObject container;
         public Image cardImage;
         public Image avatarImage;
+        public Image hitboxImage;
+        public Image overheadHitboxImage;
+        public Button mainButton;
+        public Button overheadButton;
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI hpText;
         public Image hpFillImage;
         public float posY;
+        public Coroutine activeAnimRoutine;
     }
 }

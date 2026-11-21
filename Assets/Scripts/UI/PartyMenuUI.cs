@@ -1078,10 +1078,11 @@ public class PartyMenuUI : MonoBehaviour
         string reqColor = canEquip ? "#2ecc71" : "#ff6b6b";
         string stats = GetItemStatsShort(item);
         string reqDetails = GetItemRequirementsShort(item);
+        string rarityTag = GetRarityColoredTag(item.rarity);
         string qtyTag = stack.Count > 1 ? $" <color=#2ecc71><b>(x{stack.Count})</b></color>" : "";
 
         string cardInfo =
-            $"<b><size=16.5>{item.itemName}</size></b>{qtyTag} <color=#ffd166>[{item.GetAllowedClassesText()}]</color>\n" +
+            $"<b><size=16>{item.itemName}</size></b>{qtyTag} {rarityTag} <color=#ffd166>[{item.GetAllowedClassesText()}]</color>\n" +
             $"<color=#2ecc71><b>{stats}</b></color>   <color=#cbd5e1>({reqDetails})</color>\n" +
             $"<color={reqColor}><b>{reqStr}</b></color>";
         CreateCrispText(txtObj, cardInfo, 14.5f, Color.white, TextAlignmentOptions.MidlineLeft, true);
@@ -1148,11 +1149,23 @@ public class PartyMenuUI : MonoBehaviour
     private string GetItemRequirementsShort(ItemData item)
     {
         List<string> r = new List<string>();
+        r.Add($"Nv. {Mathf.Max(1, item.requiredLevel)}");
         if (item.requiredStrength > 0) r.Add($"FOR {item.requiredStrength}");
         if (item.requiredDexterity > 0) r.Add($"DES {item.requiredDexterity}");
         if (item.requiredIntelligence > 0) r.Add($"INT {item.requiredIntelligence}");
-        if (r.Count == 0) return "Livre";
         return "Req: " + string.Join(", ", r);
+    }
+
+    private string GetRarityColoredTag(ItemRarity rarity)
+    {
+        switch (rarity)
+        {
+            case ItemRarity.Uncommon:  return "<color=#2ecc71><b>[Incomum]</b></color>";
+            case ItemRarity.Rare:      return "<color=#4ea8de><b>[Raro]</b></color>";
+            case ItemRarity.Epic:      return "<color=#c77dff><b>[Epico]</b></color>";
+            case ItemRarity.Legendary: return "<color=#ffd166><b>[Lendario]</b></color>";
+            default:                   return "<color=#cbd5e1>[Comum]</color>";
+        }
     }
 
     #endregion
@@ -1300,9 +1313,10 @@ public class PartyMenuUI : MonoBehaviour
         string stats = GetItemStatsShort(item);
         string classText = item.itemType == ItemType.Consumable ? "Todas as Classes" : item.GetAllowedClassesText();
         string reqDetails = item.itemType == ItemType.Consumable ? "" : $"  |  {GetItemRequirementsShort(item)}";
+        string rarityTag = GetRarityColoredTag(item.rarity);
 
         string detailsText =
-            $"<b><size=19>{item.itemName}</size></b>   <color=#ffd166><b>Quantidade: x{stack.Count}</b></color>   <color=#cbd5e1>[{FormatSlotTypeName(item.itemType)}]</color>\n" +
+            $"<b><size=19>{item.itemName}</size></b>  {rarityTag}   <color=#ffd166><b>Qtd: x{stack.Count}</b></color>   <color=#cbd5e1>[{FormatSlotTypeName(item.itemType)}]</color>\n" +
             $"<color=#2ecc71><b>{stats}</b></color>   |   Classes: <b>{classText}</b>{reqDetails}\n" +
             $"<size=14.5><color=#dce4f0>{item.description}</color>   <color=#ffd166>(Valor: {item.goldValue} G)</color></size>";
         CreateCrispText(infoObj, detailsText, 16f, Color.white, TextAlignmentOptions.MidlineLeft, true);

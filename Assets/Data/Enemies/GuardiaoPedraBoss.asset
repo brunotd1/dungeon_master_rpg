@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a1b2c3d4e5f60718293a4b5c6d7e8f1, type: 3}
   m_Name: GuardiaoPedraBoss
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  enemyName: Guardião de Pedra (Chefe do Andar 1)
-  description: O colossal guardião de pedra que vigia a entrada para os andares superiores. Golpe devastador e pele impenetrável.
+  enemyName: Necromante das Catacumbas
+  description: Mestre das artes sombrias que guarda a passagem do andar. Invoca guerreiros esqueletos para protegê-lo e drena a vitalidade dos heróis para se regenerar.
   isBoss: 1
-  battleSprite: {fileID: 1047670342222087150, guid: f83c972cac2bb2942ae163f380e355fb, type: 3}
-  maxHP: 180
-  attack: 22
-  defense: 10
-  speed: 7
-  xpReward: 250
-  goldReward: 200
+  battleSprite: {fileID: 21300000, guid: f83c972cac2bb2942ae163f380e355fb, type: 3}
+  maxHP: 646
+  attack: 91
+  defense: 35
+  speed: 11
+  xpReward: 860
+  goldReward: 195
   possibleDrop: {fileID: 0}
-  dropChance: 0.8
+  dropChance: 1
 

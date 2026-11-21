@@ -51,11 +51,11 @@ public class HeroData : ScriptableObject
     #region Fórmulas de Atributos Derivados (Estilo RPG Clássico & Souls)
 
     /// <summary>
-    /// Vida Máxima (HP): Baseada principalmente na Vitalidade.
+    /// Vida Máxima (HP): Baseada principalmente na Vitalidade e no Nível.
     /// </summary>
     public int CalculateMaxHP(int level, HeroAttributes currentAttrs)
     {
-        return currentAttrs.vitality * 12 + (level * 15);
+        return 55 + (currentAttrs.vitality * 6) + (level * 12);
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public class HeroData : ScriptableObject
     /// </summary>
     public int CalculateMaxMP(int level, HeroAttributes currentAttrs)
     {
-        return currentAttrs.intelligence * 8 + (level * 5);
+        return 25 + (currentAttrs.intelligence * 5) + (level * 5);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public class HeroData : ScriptableObject
     /// </summary>
     public int CalculatePhysicalAttack(HeroAttributes currentAttrs)
     {
-        return Mathf.RoundToInt(currentAttrs.strength * 2.2f + currentAttrs.dexterity * 0.8f);
+        return Mathf.RoundToInt(currentAttrs.strength * 1.35f + currentAttrs.dexterity * 0.45f);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public class HeroData : ScriptableObject
     /// </summary>
     public int CalculatePhysicalDefense(HeroAttributes currentAttrs)
     {
-        return Mathf.RoundToInt(currentAttrs.vitality * 1.5f + currentAttrs.strength * 0.8f);
+        return Mathf.RoundToInt(currentAttrs.vitality * 0.85f + currentAttrs.strength * 0.40f);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public class HeroData : ScriptableObject
     /// </summary>
     public int CalculateMagicAttack(HeroAttributes currentAttrs)
     {
-        return Mathf.RoundToInt(currentAttrs.intelligence * 2.8f);
+        return Mathf.RoundToInt(currentAttrs.intelligence * 1.75f);
     }
 
     /// <summary>

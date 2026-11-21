@@ -238,9 +238,9 @@ public class PartyManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Distribui XP igualmente entre todos os heróis vivos do grupo que participou da batalha.
+    /// Distribui XP igualmente entre todos os heróis vivos do grupo que participou da batalha e retorna o XP recebido por herói.
     /// </summary>
-    public void DistributeXP(int totalXP)
+    public int DistributeXP(int totalXP)
     {
         int livingCount = 0;
         foreach (var hero in activeParty)
@@ -248,7 +248,7 @@ public class PartyManager : MonoBehaviour
             if (hero.IsAlive) livingCount++;
         }
 
-        if (livingCount == 0) return;
+        if (livingCount == 0) return 0;
 
         int xpPerHero = totalXP / livingCount;
         foreach (var hero in activeParty)
@@ -258,6 +258,7 @@ public class PartyManager : MonoBehaviour
                 hero.GainXP(xpPerHero);
             }
         }
+        return xpPerHero;
     }
 
     /// <summary>

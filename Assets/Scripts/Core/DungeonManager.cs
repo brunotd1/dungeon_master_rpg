@@ -29,6 +29,58 @@ public class DungeonManager : MonoBehaviour
     [Header("Portas Disponíveis para Escolha")]
     public List<DungeonRoom> currentDoorChoices = new List<DungeonRoom>();
 
+    /// <summary>
+    /// Retorna o nível máximo permitido para os heróis no andar especificado (Andar 1 = Nv. 10).
+    /// </summary>
+    public int GetMaxHeroLevelForFloor(int floor = -1)
+    {
+        int targetFloor = floor > 0 ? floor : currentFloor;
+        return Mathf.Clamp(targetFloor * 10, 10, 100);
+    }
+
+    /// <summary>
+    /// Retorna o nível mínimo de herói exigido para desbloquear a sala do Chefe do andar (Andar 1 = Nv. 5).
+    /// </summary>
+    public int GetRequiredHeroLevelForBoss(int floor = -1)
+    {
+        int targetFloor = floor > 0 ? floor : currentFloor;
+        return (Mathf.Max(1, targetFloor) - 1) * 10 + 5;
+    }
+
+    /// <summary>
+    /// Retorna o nível do Chefe do andar especificado (Andar 1 = Nv. 7).
+    /// </summary>
+    public int GetFloorBossLevel(int floor = -1)
+    {
+        int targetFloor = floor > 0 ? floor : currentFloor;
+        return (Mathf.Max(1, targetFloor) - 1) * 10 + 7;
+    }
+
+    /// <summary>
+    /// Verifica se pelo menos 2 heróis da Party ativa atingiram o nível necessário para o Boss aparecer (Nv. 5 no 1º Andar).
+    /// </summary>
+    public bool AreHeroesReadyForFloorBoss(out int qualifiedHeroesCount, out int requiredHeroesCount)
+    {
+        qualifiedHeroesCount = 0;
+        if (PartyManager.Instance == null || PartyManager.Instance.activeParty == null || PartyManager.Instance.activeParty.Count == 0)
+        {
+            requiredHeroesCount = 2;
+            return false;
+        }
+
+        int reqHeroLvl = GetRequiredHeroLevelForBoss();
+        foreach (var hero in PartyManager.Instance.activeParty)
+        {
+            if (hero != null && hero.level >= reqHeroLvl)
+            {
+                qualifiedHeroesCount++;
+            }
+        }
+
+        requiredHeroesCount = Mathf.Min(2, PartyManager.Instance.activeParty.Count);
+        return qualifiedHeroesCount >= requiredHeroesCount;
+    }
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -81,6 +133,16 @@ public class DungeonManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Retorna a quantidade balanceada de monstros comuns de acordo com o progresso de salas no andar.
+    /// </summary>
+    public int GetScaledEnemyCountForCurrentRoom()
+    {
+        if (clearedRoomsThisFloor <= 2) return Random.Range(2, 4);
+        if (clearedRoomsThisFloor <= 5) return Random.Range(2, 5);
+        return Random.Range(3, 6);
+    }
+
+    /// <summary>
     /// Gera 2 a 3 opções de portas para a próxima sala com base no estado do andar.
     /// </summary>
     public void GenerateDoors()
@@ -91,36 +153,42 @@ public class DungeonManager : MonoBehaviour
         {
             currentDoorChoices.Add(new DungeonRoom(RoomType.Stairs, currentFloor, clearedRoomsThisFloor));
             currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
-            currentDoorChoices.Add(new DungeonRoom(RoomType.Treasure, currentFloor, clearedRoomsThisFloor));
+
+            float postBossRoll = Random.value;
+            if (postBossRoll < 0.14f)
+                currentDoorChoices.Add(new DungeonRoom(RoomType.Treasure, currentFloor, clearedRoomsThisFloor));
+            else if (postBossRoll < 0.40f)
+                currentDoorChoices.Add(new DungeonRoom(RoomType.Rest, currentFloor, clearedRoomsThisFloor));
+            else
+                currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
             Debug.Log($"🚪 [ESCOLHA DE PORTAS - PÓS-BOSS] Escadaria para o Andar {currentFloor + 1} liberada! Ou continue no andar para farmar XP e itens!");
         }
         else
         {
-            if (clearedRoomsThisFloor >= roomsRequiredForBoss)
+            if (AreHeroesReadyForFloorBoss(out int qualCount, out int reqCount))
             {
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Boss, currentFloor, clearedRoomsThisFloor));
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Rest, currentFloor, clearedRoomsThisFloor));
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
-                Debug.Log($"⚠️ [ALERTA DE CHEFE] O Guardião do Andar {currentFloor} foi localizado!");
+                Debug.Log($"⚠️ [ALERTA DE CHEFE] {qualCount}/{reqCount} heróis no Nv. {GetRequiredHeroLevelForBoss()}+! A sala do Guardião (Nv. {GetFloorBossLevel()}) do Andar {currentFloor} foi revelada!");
             }
             else
             {
                 currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
-                float roll = Random.value;
-                if (roll < 0.45f)
+                if (clearedRoomsThisFloor >= 2 && Random.value < 0.14f)
                     currentDoorChoices.Add(new DungeonRoom(RoomType.Treasure, currentFloor, clearedRoomsThisFloor));
                 else
                     currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
-                if (Random.value < 0.35f)
+                if (clearedRoomsThisFloor >= 1 && Random.value < 0.22f)
                     currentDoorChoices.Add(new DungeonRoom(RoomType.Rest, currentFloor, clearedRoomsThisFloor));
                 else
                     currentDoorChoices.Add(new DungeonRoom(RoomType.Combat, currentFloor, clearedRoomsThisFloor));
 
-                Debug.Log($"🚪 [ESCOLHA DE PORTAS] {currentDoorChoices.Count} caminhos à frente no Andar {currentFloor}.");
+                Debug.Log($"🚪 [ESCOLHA DE PORTAS] {currentDoorChoices.Count} caminhos à frente no Andar {currentFloor}. (Boss exige {reqCount} heróis no Nv. {GetRequiredHeroLevelForBoss()})");
             }
         }
     }
@@ -179,7 +247,7 @@ public class DungeonManager : MonoBehaviour
                 if (BattleManager.Instance != null && BattleManager.Instance.commonFloorEnemies != null && BattleManager.Instance.commonFloorEnemies.Length > 0)
                 {
                     List<EnemyData> encounter = new List<EnemyData>();
-                    int enemyCount = Random.Range(2, 7);
+                    int enemyCount = GetScaledEnemyCountForCurrentRoom();
                     for (int i = 0; i < enemyCount; i++)
                     {
                         encounter.Add(BattleManager.Instance.commonFloorEnemies[Random.Range(0, BattleManager.Instance.commonFloorEnemies.Length)]);
@@ -198,12 +266,12 @@ public class DungeonManager : MonoBehaviour
 
             case RoomType.Treasure:
                 Debug.Log($"🎁 Baú aberto! Ouro e equipamentos enviados para o Depósito da Guilda!");
-                int chestGold = Random.Range(50, 120) * currentFloor;
+                int chestGold = Random.Range(35, 70) * currentFloor;
                 List<ItemData> chestDrops = new List<ItemData>();
                 if (PartyManager.Instance != null)
                 {
                     PartyManager.Instance.AddGold(chestGold);
-                    ItemData chestLoot = ItemGenerator.GenerateRandomDungeonDrop();
+                    ItemData chestLoot = ItemGenerator.GenerateRandomDungeonDrop(currentFloor, -1, isTreasureChest: true, isBossDrop: false);
                     PartyManager.Instance.AddItemToInventory(chestLoot);
                     if (chestLoot != null) chestDrops.Add(chestLoot);
                 }
@@ -254,12 +322,6 @@ public class DungeonManager : MonoBehaviour
 
         Debug.Log($"🏆 VITÓRIA ÉPICA! O Guardião do Andar {currentFloor} foi destruído!");
         Debug.Log($"🪜 O Andar {currentFloor + 1} foi LIBERADO permanentemente no seu Save!");
-
-        if (PartyManager.Instance != null)
-        {
-            PartyManager.Instance.DistributeXP(250 * currentFloor);
-            PartyManager.Instance.AddGold(300 * currentFloor);
-        }
 
         GenerateDoors();
         SaveSystem.AutoSave($"Boss do Andar {currentFloor} Derrotado");
